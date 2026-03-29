@@ -89,6 +89,10 @@ For a manual install, place the DLL here:
 ```text
 %AppData%\Notepad++\plugins\VSCodeKeymapNpp\VSCodeKeymapNpp.dll
 ```
+or here:
+```text
+%ProgramFiles%\Notepad++\plugins\VSCodeKeymapNpp\VSCodeKeymapNpp.dll
+```
 
 Restart Notepad++ after copying the file. If Windows blocks a DLL downloaded
 from the internet, open the file properties first and clear the block before
