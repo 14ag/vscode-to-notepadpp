@@ -9,6 +9,7 @@ configure_file(
 
 add_library(VSCodeKeymapNpp SHARED
   src/VSCodeKeymapPlugin.cpp
+  src/GeneratedBindings.inc
   ${CMAKE_CURRENT_BINARY_DIR}/VSCodeKeymapNpp.rc
 )
 

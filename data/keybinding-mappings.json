@@ -1,0 +1,802 @@
+{
+  "bindings": [
+    {
+      "command": "editor.action.clipboardCutAction",
+      "winKey": "Ctrl+X",
+      "handler": "custom",
+      "target": "CutAllowLine",
+      "notes": "Cut whole line when selection is empty, like VS Code."
+    },
+    {
+      "command": "editor.action.clipboardCopyAction",
+      "winKey": "Ctrl+C",
+      "handler": "custom",
+      "target": "CopyAllowLine",
+      "notes": "Copy whole line when selection is empty, like VS Code."
+    },
+    {
+      "command": "editor.action.clipboardPasteAction",
+      "winKey": "Ctrl+V",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for paste."
+    },
+    {
+      "command": "editor.action.deleteLines",
+      "winKey": "Ctrl+Shift+K",
+      "handler": "sciCommand",
+      "target": "SCI_LINEDELETE",
+      "notes": "Delete current line when selection is empty, matching VS Code behavior closely."
+    },
+    {
+      "command": "editor.action.insertLineAfter",
+      "winKey": "Ctrl+Enter",
+      "handler": "custom",
+      "target": "InsertLineBelow",
+      "notes": "Insert blank line below caret."
+    },
+    {
+      "command": "editor.action.insertLineBefore",
+      "winKey": "Ctrl+Shift+Enter",
+      "handler": "custom",
+      "target": "InsertLineAbove",
+      "notes": "Insert blank line above caret."
+    },
+    {
+      "command": "editor.action.moveLinesDownAction",
+      "winKey": "Alt+Down",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_LINE_DOWN",
+      "notes": "Move current line or selection down."
+    },
+    {
+      "command": "editor.action.moveLinesUpAction",
+      "winKey": "Alt+Up",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_LINE_UP",
+      "notes": "Move current line or selection up."
+    },
+    {
+      "command": "editor.action.copyLinesDownAction",
+      "winKey": "Shift+Alt+Down",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_DUP_LINE",
+      "notes": "Duplicate line downward."
+    },
+    {
+      "command": "editor.action.copyLinesUpAction",
+      "winKey": "Shift+Alt+Up",
+      "handler": "custom",
+      "target": "DuplicateLineUp",
+      "notes": "Duplicate line, then move duplicate upward."
+    },
+    {
+      "command": "undo",
+      "winKey": "Ctrl+Z",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for undo."
+    },
+    {
+      "command": "redo",
+      "winKey": "Ctrl+Y",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for redo."
+    },
+    {
+      "command": "editor.action.addSelectionToNextFindMatch",
+      "winKey": "Ctrl+D",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTNEXT",
+      "notes": "Add next match to multiselection."
+    },
+    {
+      "command": "editor.action.moveSelectionToNextFindMatch",
+      "winKey": "Ctrl+K Ctrl+D",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTSSKIP",
+      "notes": "Skip current occurrence in multi-select flow."
+    },
+    {
+      "command": "cursorUndo",
+      "winKey": "Ctrl+U",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTUNDO",
+      "notes": "Undo last multi-cursor selection step."
+    },
+    {
+      "command": "editor.action.insertCursorAtEndOfEachLineSelected",
+      "winKey": "Shift+Alt+I",
+      "handler": "reservedNoOp",
+      "notes": "Multiple-caret insertion per line is not implemented safely in Notepad++."
+    },
+    {
+      "command": "editor.action.selectHighlights",
+      "winKey": "Ctrl+Shift+L",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTALL",
+      "notes": "Select all current selection matches."
+    },
+    {
+      "command": "editor.action.changeAll",
+      "winKey": "Ctrl+F2",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTALLWHOLEWORD",
+      "notes": "Approximate current-word multi-select."
+    },
+    {
+      "command": "expandLineSelection",
+      "winKey": "Ctrl+L",
+      "handler": "custom",
+      "target": "SelectCurrentLine",
+      "notes": "Select current line without trailing newline."
+    },
+    {
+      "command": "editor.action.insertCursorBelow",
+      "winKey": "Ctrl+Alt+Down",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut."
+    },
+    {
+      "command": "editor.action.insertCursorAbove",
+      "winKey": "Ctrl+Alt+Up",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut."
+    },
+    {
+      "command": "cursorTop",
+      "winKey": "Ctrl+Home",
+      "handler": "sciCommand",
+      "target": "SCI_DOCUMENTSTART",
+      "notes": "Jump to document start."
+    },
+    {
+      "command": "cursorBottom",
+      "winKey": "Ctrl+End",
+      "handler": "sciCommand",
+      "target": "SCI_DOCUMENTEND",
+      "notes": "Jump to document end."
+    },
+    {
+      "command": "scrollLineUp",
+      "winKey": "Ctrl+Up",
+      "handler": "sciCommand",
+      "target": "SCI_LINESCROLLUP",
+      "notes": "Scroll without moving caret."
+    },
+    {
+      "command": "scrollLineDown",
+      "winKey": "Ctrl+Down",
+      "handler": "sciCommand",
+      "target": "SCI_LINESCROLLDOWN",
+      "notes": "Scroll without moving caret."
+    },
+    {
+      "command": "scrollPageUp",
+      "winKey": "Alt+PageUp",
+      "handler": "custom",
+      "target": "ScrollPageUpNoCaret",
+      "notes": "Scroll a page without moving caret."
+    },
+    {
+      "command": "scrollPageDown",
+      "winKey": "Alt+PageDown",
+      "handler": "custom",
+      "target": "ScrollPageDownNoCaret",
+      "notes": "Scroll a page without moving caret."
+    },
+    {
+      "command": "editor.action.commentLine",
+      "winKey": "Ctrl+/",
+      "handler": "custom",
+      "target": "ToggleStreamComment",
+      "notes": "Toggle line-style stream comment based on current selection state."
+    },
+    {
+      "command": "editor.action.blockComment",
+      "winKey": "Shift+Alt+A",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_BLOCK_COMMENT",
+      "notes": "Use Notepad++ block comment command."
+    },
+    {
+      "command": "editor.action.jumpToBracket",
+      "winKey": "Ctrl+Shift+\\",
+      "handler": "nppCommand",
+      "target": "IDM_SEARCH_GOTOMATCHINGBRACE",
+      "notes": "Jump to matching brace."
+    },
+    {
+      "command": "editor.fold",
+      "winKey": "Ctrl+Shift+[",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_FOLD_CURRENT",
+      "notes": "Fold current region."
+    },
+    {
+      "command": "editor.unfold",
+      "winKey": "Ctrl+Shift+]",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_UNFOLD_CURRENT",
+      "notes": "Unfold current region."
+    },
+    {
+      "command": "editor.toggleFold",
+      "winKey": "Ctrl+K Ctrl+L",
+      "handler": "custom",
+      "target": "ToggleFoldAtCaret",
+      "notes": "Toggle fold header at caret, or nearest fold parent."
+    },
+    {
+      "command": "editor.foldRecursively",
+      "winKey": "Ctrl+K Ctrl+[",
+      "handler": "reservedNoOp",
+      "notes": "Reserved chord; exact recursive fold not implemented."
+    },
+    {
+      "command": "editor.unfoldRecursively",
+      "winKey": "Ctrl+K Ctrl+]",
+      "handler": "reservedNoOp",
+      "notes": "Reserved chord; exact recursive unfold not implemented."
+    },
+    {
+      "command": "editor.foldAll",
+      "winKey": "Ctrl+K Ctrl+0",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_FOLDALL",
+      "notes": "Fold all regions."
+    },
+    {
+      "command": "editor.unfoldAll",
+      "winKey": "Ctrl+K Ctrl+J",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_UNFOLDALL",
+      "notes": "Unfold all regions."
+    },
+    {
+      "command": "editor.action.addCommentLine",
+      "winKey": "Ctrl+K Ctrl+C",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_STREAM_COMMENT",
+      "notes": "Force comment selected lines."
+    },
+    {
+      "command": "editor.action.removeCommentLine",
+      "winKey": "Ctrl+K Ctrl+U",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_STREAM_UNCOMMENT",
+      "notes": "Force uncomment selected lines."
+    },
+    {
+      "command": "workbench.action.openSettings",
+      "winKey": "Ctrl+,",
+      "handler": "nppCommand",
+      "target": "IDM_SETTING_PREFERENCE",
+      "notes": "Open Notepad++ preferences."
+    },
+    {
+      "command": "workbench.action.showCommands",
+      "winKey": "Ctrl+Shift+P",
+      "handler": "reservedNoOp",
+      "notes": "No Command Palette equivalent."
+    },
+    {
+      "command": "workbench.action.quickOpen",
+      "winKey": "Ctrl+P",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_OPEN",
+      "notes": "Approximate Quick Open with file-open dialog."
+    },
+    {
+      "command": "workbench.action.quickOpenPreviousRecentlyUsedEditorInGroup",
+      "winKey": "Ctrl+Tab",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB_NEXT",
+      "notes": "Cycle tabs forward."
+    },
+    {
+      "command": "workbench.action.gotoLine",
+      "winKey": "Ctrl+G",
+      "handler": "nppCommand",
+      "target": "IDM_SEARCH_GOTOLINE",
+      "notes": "Go to line."
+    },
+    {
+      "command": "workbench.action.moveEditorRightInGroup",
+      "winKey": "Ctrl+Shift+PageDown",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB_MOVEFORWARD",
+      "notes": "Approximate move editor right with move tab right."
+    },
+    {
+      "command": "workbench.action.moveEditorLeftInGroup",
+      "winKey": "Ctrl+Shift+PageUp",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB_MOVEBACKWARD",
+      "notes": "Approximate move editor left with move tab left."
+    },
+    {
+      "command": "cursorHome",
+      "winKey": "Home",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for line-home movement."
+    },
+    {
+      "command": "cursorEnd",
+      "winKey": "End",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for line-end movement."
+    },
+    {
+      "command": "workbench.action.navigateBack",
+      "winKey": "Alt+Left",
+      "handler": "reservedNoOp",
+      "notes": "No stable back-stack equivalent."
+    },
+    {
+      "command": "workbench.action.navigateForward",
+      "winKey": "Alt+Right",
+      "handler": "reservedNoOp",
+      "notes": "No stable forward-stack equivalent."
+    },
+    {
+      "command": "workbench.action.gotoSymbol",
+      "winKey": "Ctrl+Shift+O",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_SWITCHTO_FUNC_LIST",
+      "notes": "Approximate symbol picker with function list panel."
+    },
+    {
+      "command": "workbench.action.showAllSymbols",
+      "winKey": "Ctrl+T",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_SWITCHTO_FUNC_LIST",
+      "notes": "Approximate workspace symbol search with function list."
+    },
+    {
+      "command": "editor.action.marker.nextInFiles",
+      "winKey": "F8",
+      "handler": "reservedNoOp",
+      "notes": "No Problems panel equivalent."
+    },
+    {
+      "command": "editor.action.marker.prevInFiles",
+      "winKey": "Shift+F8",
+      "handler": "reservedNoOp",
+      "notes": "No Problems panel equivalent."
+    },
+    {
+      "command": "editor.action.quickFix",
+      "winKey": "Ctrl+.",
+      "handler": "reservedNoOp",
+      "notes": "No quick-fix provider equivalent."
+    },
+    {
+      "command": "editor.action.rename",
+      "winKey": "F2",
+      "handler": "reservedNoOp",
+      "notes": "No language-aware rename equivalent."
+    },
+    {
+      "command": "editor.action.revealDefinition",
+      "winKey": "F12",
+      "handler": "reservedNoOp",
+      "notes": "No built-in go-to-definition equivalent."
+    },
+    {
+      "command": "editor.action.revealDefinitionAside",
+      "winKey": "Ctrl+K F12",
+      "handler": "reservedNoOp",
+      "notes": "No open-definition-side equivalent."
+    },
+    {
+      "command": "editor.action.peekDefinition",
+      "winKey": "Alt+F12",
+      "handler": "reservedNoOp",
+      "notes": "No peek-definition equivalent."
+    },
+    {
+      "command": "editor.action.goToReferences",
+      "winKey": "Shift+F12",
+      "handler": "reservedNoOp",
+      "notes": "No find-references equivalent."
+    },
+    {
+      "command": "editor.action.triggerSuggest",
+      "winKey": "Ctrl+Space",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_AUTOCOMPLETE",
+      "notes": "Open autocomplete."
+    },
+    {
+      "command": "editor.action.triggerParameterHints",
+      "winKey": "Ctrl+Shift+Space",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_FUNCCALLTIP",
+      "notes": "Open function call tip."
+    },
+    {
+      "command": "editor.action.formatDocument",
+      "winKey": "Shift+Alt+F",
+      "handler": "reservedNoOp",
+      "notes": "Formatting depends on plugins/language support, so strict mode reserves it."
+    },
+    {
+      "command": "editor.action.formatSelection",
+      "winKey": "Ctrl+K Ctrl+F",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code format-selection chord."
+    },
+    {
+      "command": "editor.action.showHover",
+      "winKey": "Ctrl+K Ctrl+I",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code hover chord."
+    },
+    {
+      "command": "editor.action.trimTrailingWhitespace",
+      "winKey": "Ctrl+K Ctrl+X",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_TRIMTRAILING",
+      "notes": "Trim trailing whitespace."
+    },
+    {
+      "command": "editor.action.indentLines",
+      "winKey": "Ctrl+]",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_INS_TAB",
+      "notes": "Approximate VS Code indent with Notepad++ indent command."
+    },
+    {
+      "command": "editor.action.outdentLines",
+      "winKey": "Ctrl+[",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_RMV_TAB",
+      "notes": "Approximate VS Code outdent with Notepad++ unindent command."
+    },
+    {
+      "command": "editor.action.toggleWordWrap",
+      "winKey": "Alt+Z",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_WRAP",
+      "notes": "Toggle word wrap."
+    },
+    {
+      "command": "workbench.action.files.newUntitledFile",
+      "winKey": "Ctrl+N",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for new file."
+    },
+    {
+      "command": "workbench.action.files.openFile",
+      "winKey": "Ctrl+O",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for open file."
+    },
+    {
+      "command": "workbench.action.files.save",
+      "winKey": "Ctrl+S",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for save."
+    },
+    {
+      "command": "saveAll",
+      "winKey": "Ctrl+K S",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_SAVEALL",
+      "notes": "Save all open files."
+    },
+    {
+      "command": "workbench.action.closeActiveEditor",
+      "winKey": "Ctrl+F4",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_CLOSE",
+      "notes": "Close active file."
+    },
+    {
+      "command": "workbench.action.closeEditorsInGroup",
+      "winKey": "Ctrl+K W",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code close-group chord."
+    },
+    {
+      "command": "workbench.action.closeAllEditors",
+      "winKey": "Ctrl+K Ctrl+W",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_CLOSEALL",
+      "notes": "Close all files."
+    },
+    {
+      "command": "workbench.action.reopenClosedEditor",
+      "winKey": "Ctrl+Shift+T",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_RESTORELASTCLOSEDFILE",
+      "notes": "Restore last closed file."
+    },
+    {
+      "command": "workbench.action.keepEditor",
+      "winKey": "Ctrl+K Enter",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code keep-open chord."
+    },
+    {
+      "command": "workbench.action.files.copyPathOfActiveFile",
+      "winKey": "Ctrl+K P",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_FULLPATHTOCLIP",
+      "notes": "Copy active file path."
+    },
+    {
+      "command": "workbench.action.files.revealActiveFileInWindows",
+      "winKey": "Ctrl+K R",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_OPENINFOLDER",
+      "notes": "Reveal active file in Explorer."
+    },
+    {
+      "command": "workbench.action.closeFolder",
+      "winKey": "Ctrl+K F",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code close-folder chord."
+    },
+    {
+      "command": "workbench.action.toggleFullScreen",
+      "winKey": "F11",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_FULLSCREENTOGGLE",
+      "notes": "Toggle fullscreen."
+    },
+    {
+      "command": "workbench.action.toggleZenMode",
+      "winKey": "Ctrl+K Z",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_DISTRACTIONFREE",
+      "notes": "Approximate VS Code Zen Mode with Notepad++ distraction-free mode."
+    },
+    {
+      "command": "workbench.action.zoomIn",
+      "winKey": "Ctrl+=",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_ZOOMIN",
+      "notes": "Zoom in."
+    },
+    {
+      "command": "workbench.action.zoomOut",
+      "winKey": "Ctrl+-",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_ZOOMOUT",
+      "notes": "Zoom out."
+    },
+    {
+      "command": "workbench.action.zoomReset",
+      "winKey": "Ctrl+NumPad0",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_ZOOMRESTORE",
+      "notes": "Reset zoom."
+    },
+    {
+      "command": "workbench.action.toggleSidebarVisibility",
+      "winKey": "Ctrl+B",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_FILEBROWSER",
+      "notes": "Approximate sidebar toggle with file browser panel."
+    },
+    {
+      "command": "workbench.view.explorer",
+      "winKey": "Ctrl+Shift+E",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_SWITCHTO_FILEBROWSER",
+      "notes": "Focus file browser panel."
+    },
+    {
+      "command": "workbench.view.search",
+      "winKey": "Ctrl+Shift+F",
+      "handler": "nppCommand",
+      "target": "IDM_SEARCH_FINDINFILES",
+      "notes": "Find in files."
+    },
+    {
+      "command": "workbench.view.scm",
+      "winKey": "Ctrl+Shift+G",
+      "handler": "reservedNoOp",
+      "notes": "No source-control sidebar equivalent."
+    },
+    {
+      "command": "workbench.view.debug",
+      "winKey": "Ctrl+Shift+D",
+      "handler": "reservedNoOp",
+      "notes": "No Run/Debug sidebar equivalent."
+    },
+    {
+      "command": "workbench.view.extensions",
+      "winKey": "Ctrl+Shift+X",
+      "handler": "reservedNoOp",
+      "notes": "No extensions marketplace sidebar equivalent."
+    },
+    {
+      "command": "workbench.action.output.toggleOutput",
+      "winKey": "Ctrl+Shift+U",
+      "handler": "reservedNoOp",
+      "notes": "No Output panel equivalent."
+    },
+    {
+      "command": "workbench.action.quickOpenView",
+      "winKey": "Ctrl+Q",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code quick-open-view shortcut."
+    },
+    {
+      "command": "workbench.action.terminal.openNativeConsole",
+      "winKey": "Ctrl+Shift+C",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_OPEN_CMD",
+      "notes": "Approximate with Open Command Prompt Here."
+    },
+    {
+      "command": "workbench.action.terminal.toggleTerminal",
+      "winKey": "Ctrl+`",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_OPEN_CMD",
+      "notes": "Approximate integrated terminal with Open Command Prompt Here."
+    },
+    {
+      "command": "actions.find",
+      "winKey": "Ctrl+F",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for find."
+    },
+    {
+      "command": "editor.action.startFindReplaceAction",
+      "winKey": "Ctrl+H",
+      "handler": "nativePassThrough",
+      "notes": "Notepad++ already matches VS Code for replace."
+    },
+    {
+      "command": "editor.action.selectAllMatches",
+      "winKey": "Alt+Enter",
+      "handler": "nppCommand",
+      "target": "IDM_EDIT_MULTISELECTALL",
+      "notes": "Select all find matches."
+    },
+    {
+      "command": "workbench.action.openGlobalKeybindings",
+      "winKey": "Ctrl+K Ctrl+S",
+      "handler": "nppCommand",
+      "target": "IDM_SETTING_SHORTCUT_MAPPER",
+      "notes": "Open Shortcut Mapper."
+    },
+    {
+      "command": "workbench.action.selectTheme",
+      "winKey": "Ctrl+K Ctrl+T",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code theme chord."
+    },
+    {
+      "command": "workbench.action.replaceInFiles",
+      "winKey": "Ctrl+Shift+H",
+      "handler": "nppCommand",
+      "target": "IDM_SEARCH_FINDINFILES",
+      "notes": "Approximate replace-in-files with Notepad++ find-in-files panel."
+    },
+    {
+      "command": "workbench.action.files.saveAs",
+      "winKey": "Ctrl+Shift+S",
+      "handler": "nppCommand",
+      "target": "IDM_FILE_SAVEAS",
+      "notes": "Save current file as."
+    },
+    {
+      "command": "workbench.action.focusFirstEditorGroup",
+      "winKey": "Ctrl+1",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB1",
+      "notes": "Approximate first editor group focus with first tab selection."
+    },
+    {
+      "command": "workbench.action.focusSecondEditorGroup",
+      "winKey": "Ctrl+2",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB2",
+      "notes": "Approximate second editor group focus with second tab selection."
+    },
+    {
+      "command": "workbench.action.focusThirdEditorGroup",
+      "winKey": "Ctrl+3",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_TAB3",
+      "notes": "Approximate third editor group focus with third tab selection."
+    },
+    {
+      "command": "workbench.action.newWindow",
+      "winKey": "Ctrl+Shift+N",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_GOTO_NEW_INSTANCE",
+      "notes": "Approximate new window with new Notepad++ instance."
+    },
+    {
+      "command": "workbench.action.moveEditorToPreviousGroup",
+      "winKey": "Ctrl+Alt+Left",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_GOTO_ANOTHER_VIEW",
+      "notes": "Approximate move editor to previous group by moving document to the other view."
+    },
+    {
+      "command": "workbench.action.moveEditorToNextGroup",
+      "winKey": "Ctrl+Alt+Right",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_GOTO_ANOTHER_VIEW",
+      "notes": "Approximate move editor to next group by moving document to the other view."
+    },
+    {
+      "command": "workbench.action.editor.changeLanguageMode",
+      "winKey": "Ctrl+K M",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code language-mode chord."
+    },
+    {
+      "command": "markdown.showPreviewToSide",
+      "winKey": "Ctrl+K V",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code markdown-preview chord."
+    },
+    {
+      "command": "workbench.action.moveActiveEditorGroupLeft",
+      "winKey": "Ctrl+K Left",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code move-group chord."
+    },
+    {
+      "command": "workbench.action.moveActiveEditorGroupRight",
+      "winKey": "Ctrl+K Right",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code move-group chord."
+    },
+    {
+      "command": "workbench.action.focusLeftGroup",
+      "winKey": "Ctrl+K Ctrl+Left",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code focus-group chord."
+    },
+    {
+      "command": "workbench.action.focusRightGroup",
+      "winKey": "Ctrl+K Ctrl+Right",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code focus-group chord."
+    },
+    {
+      "command": "workbench.actions.view.problems",
+      "winKey": "Ctrl+Shift+M",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code problems shortcut."
+    },
+    {
+      "command": "markdown.showPreview",
+      "winKey": "Ctrl+Shift+V",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code markdown-preview shortcut."
+    },
+    {
+      "command": "workbench.action.search.toggleQueryDetails",
+      "winKey": "Ctrl+Shift+J",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code search-details shortcut."
+    },
+    {
+      "command": "workbench.action.splitEditor",
+      "winKey": "Ctrl+\\",
+      "handler": "nppCommand",
+      "target": "IDM_VIEW_GOTO_ANOTHER_VIEW",
+      "notes": "Approximate split editor by moving document to the other view."
+    },
+    {
+      "command": "workbench.action.debug.start",
+      "winKey": "F5",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code debug-start shortcut."
+    },
+    {
+      "command": "editor.debug.action.toggleBreakpoint",
+      "winKey": "F9",
+      "handler": "reservedNoOp",
+      "notes": "Reserved so conflicting Notepad++ behavior does not fire for VS Code breakpoint shortcut."
+    }
+  ]
+}

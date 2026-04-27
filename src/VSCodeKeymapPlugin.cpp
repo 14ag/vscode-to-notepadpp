@@ -38,6 +38,7 @@ enum class ActionKind {
     DuplicateLineUp,
     CutAllowLine,
     CopyAllowLine,
+    ToggleFoldAtCaret,
     ToggleStreamComment,
     SelectCurrentLine,
     InsertLineBelow,
@@ -182,163 +183,7 @@ void ConfigureEditors() {
     ConfigureEditor(g_nppData._scintillaSecondHandle);
 }
 
-const std::vector<ShortcutBinding> kShortcutBindings = {
-    // General
-    {{true, false, true, 'P'}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F1}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, VK_OEM_COMMA}, ActionKind::NppCommand, IDM_SETTING_PREFERENCE},
-    {{true, false, false, 'M'}, ActionKind::ReservedNoOp, 0},
-
-    // File management
-    {{true, false, false, 'P'}, ActionKind::NppCommand, IDM_FILE_OPEN},
-    {{true, false, true, 'N'}, ActionKind::NppCommand, IDM_VIEW_GOTO_NEW_INSTANCE},
-    {{true, false, true, 'W'}, ActionKind::NppCommand, IDM_FILE_EXIT},
-    {{true, false, false, 'N'}, ActionKind::NppCommand, IDM_FILE_NEW},
-    {{true, false, false, 'O'}, ActionKind::NppCommand, IDM_FILE_OPEN},
-    {{true, false, false, 'S'}, ActionKind::NppCommand, IDM_FILE_SAVE},
-    {{true, false, true, 'S'}, ActionKind::NppCommand, IDM_FILE_SAVEAS},
-    {{true, false, false, 'W'}, ActionKind::NppCommand, IDM_FILE_CLOSE},
-    {{true, false, false, VK_F4}, ActionKind::NppCommand, IDM_FILE_CLOSE},
-    {{true, false, true, 'T'}, ActionKind::NppCommand, IDM_FILE_RESTORELASTCLOSEDFILE},
-    {{true, false, false, VK_TAB}, ActionKind::NppCommand, IDM_VIEW_TAB_NEXT},
-    {{true, false, true, VK_TAB}, ActionKind::NppCommand, IDM_VIEW_TAB_PREV},
-    {{true, false, false, VK_NEXT}, ActionKind::NppCommand, IDM_VIEW_TAB_NEXT},
-    {{true, false, false, VK_PRIOR}, ActionKind::NppCommand, IDM_VIEW_TAB_PREV},
-    {{true, false, true, VK_PRIOR}, ActionKind::NppCommand, IDM_VIEW_TAB_MOVEBACKWARD},
-    {{true, false, true, VK_NEXT}, ActionKind::NppCommand, IDM_VIEW_TAB_MOVEFORWARD},
-    {{true, false, false, '1'}, ActionKind::NppCommand, IDM_VIEW_TAB1},
-    {{true, false, false, '2'}, ActionKind::NppCommand, IDM_VIEW_TAB2},
-    {{true, false, false, '3'}, ActionKind::NppCommand, IDM_VIEW_TAB3},
-    {{true, false, false, '4'}, ActionKind::NppCommand, IDM_VIEW_TAB4},
-    {{true, false, false, '5'}, ActionKind::NppCommand, IDM_VIEW_TAB5},
-    {{true, false, false, '6'}, ActionKind::NppCommand, IDM_VIEW_TAB6},
-    {{true, false, false, '7'}, ActionKind::NppCommand, IDM_VIEW_TAB7},
-    {{true, false, false, '8'}, ActionKind::NppCommand, IDM_VIEW_TAB8},
-    {{true, false, false, '9'}, ActionKind::NppCommand, IDM_VIEW_TAB9},
-
-    // Basic editing
-    {{true, false, false, 'X'}, ActionKind::CutAllowLine, 0},
-    {{true, false, false, 'C'}, ActionKind::CopyAllowLine, 0},
-    {{false, true, false, VK_UP}, ActionKind::NppCommand, IDM_EDIT_LINE_UP},
-    {{false, true, false, VK_DOWN}, ActionKind::NppCommand, IDM_EDIT_LINE_DOWN},
-    {{false, true, true, VK_DOWN}, ActionKind::NppCommand, IDM_EDIT_DUP_LINE},
-    {{false, true, true, VK_UP}, ActionKind::DuplicateLineUp, 0},
-    {{true, false, true, 'K'}, ActionKind::SciCommand, SCI_LINEDELETE},
-    {{true, false, false, VK_RETURN}, ActionKind::InsertLineBelow, 0},
-    {{true, false, true, VK_RETURN}, ActionKind::InsertLineAbove, 0},
-    {{true, false, true, VK_OEM_5}, ActionKind::NppCommand, IDM_SEARCH_GOTOMATCHINGBRACE},
-    {{true, false, false, VK_OEM_6}, ActionKind::NppCommand, IDM_EDIT_INS_TAB},
-    {{true, false, false, VK_OEM_4}, ActionKind::NppCommand, IDM_EDIT_RMV_TAB},
-    {{true, false, false, VK_HOME}, ActionKind::SciCommand, SCI_DOCUMENTSTART},
-    {{true, false, false, VK_END}, ActionKind::SciCommand, SCI_DOCUMENTEND},
-    {{true, false, false, VK_UP}, ActionKind::SciCommand, SCI_LINESCROLLUP},
-    {{true, false, false, VK_DOWN}, ActionKind::SciCommand, SCI_LINESCROLLDOWN},
-    {{false, true, false, VK_PRIOR}, ActionKind::ScrollPageUpNoCaret, 0},
-    {{false, true, false, VK_NEXT}, ActionKind::ScrollPageDownNoCaret, 0},
-    {{true, false, true, VK_OEM_4}, ActionKind::NppCommand, IDM_VIEW_FOLD_CURRENT},
-    {{true, false, true, VK_OEM_6}, ActionKind::NppCommand, IDM_VIEW_UNFOLD_CURRENT},
-    {{true, false, false, VK_OEM_2}, ActionKind::ToggleStreamComment, 0},
-    {{true, false, false, VK_DIVIDE}, ActionKind::ToggleStreamComment, 0},
-    {{false, true, true, 'A'}, ActionKind::NppCommand, IDM_EDIT_BLOCK_COMMENT},
-    {{false, true, false, 'Z'}, ActionKind::NppCommand, IDM_VIEW_WRAP},
-
-    // Navigation and search
-    {{true, false, false, 'T'}, ActionKind::NppCommand, IDM_VIEW_SWITCHTO_FUNC_LIST},
-    {{true, false, false, 'G'}, ActionKind::NppCommand, IDM_SEARCH_GOTOLINE},
-    {{true, false, true, 'O'}, ActionKind::NppCommand, IDM_VIEW_SWITCHTO_FUNC_LIST},
-    {{true, false, true, 'M'}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F8}, ActionKind::ReservedNoOp, 0},
-    {{false, false, true, VK_F8}, ActionKind::ReservedNoOp, 0},
-    {{false, true, false, VK_LEFT}, ActionKind::ReservedNoOp, 0},
-    {{false, true, false, VK_RIGHT}, ActionKind::ReservedNoOp, 0},
-
-    {{true, false, false, 'F'}, ActionKind::NppCommand, IDM_SEARCH_FIND},
-    {{true, false, false, 'H'}, ActionKind::NppCommand, IDM_SEARCH_REPLACE},
-    {{false, false, false, VK_F3}, ActionKind::NppCommand, IDM_SEARCH_FINDNEXT},
-    {{false, false, true, VK_F3}, ActionKind::NppCommand, IDM_SEARCH_FINDPREV},
-    {{false, true, false, VK_RETURN}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTALL},
-    {{true, false, false, 'D'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTNEXT},
-    {{true, false, false, 'U'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTUNDO},
-    {{true, false, false, 'L'}, ActionKind::SelectCurrentLine, 0},
-    {{true, false, true, 'L'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTALL},
-    {{true, false, false, VK_F2}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTALLWHOLEWORD},
-    {{false, true, true, VK_RIGHT}, ActionKind::ReservedNoOp, 0},
-    {{false, true, true, VK_LEFT}, ActionKind::ReservedNoOp, 0},
-
-    // Keep Ctrl+Alt vertical cursor combos reserved so they don't leak to N++ defaults.
-    {{true, true, false, VK_UP}, ActionKind::ReservedNoOp, 0},
-    {{true, true, false, VK_DOWN}, ActionKind::ReservedNoOp, 0},
-    {{false, true, true, 'I'}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_UP}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_DOWN}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_LEFT}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_RIGHT}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_PRIOR}, ActionKind::ReservedNoOp, 0},
-    {{true, true, true, VK_NEXT}, ActionKind::ReservedNoOp, 0},
-
-    // Rich language and symbol tooling
-    {{true, false, false, VK_SPACE}, ActionKind::NppCommand, IDM_EDIT_AUTOCOMPLETE},
-    {{true, false, false, 'I'}, ActionKind::NppCommand, IDM_EDIT_AUTOCOMPLETE},
-    {{true, false, true, VK_SPACE}, ActionKind::NppCommand, IDM_EDIT_FUNCCALLTIP},
-    {{false, true, true, 'F'}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F12}, ActionKind::ReservedNoOp, 0},
-    {{false, true, false, VK_F12}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, VK_OEM_PERIOD}, ActionKind::ReservedNoOp, 0},
-    {{false, false, true, VK_F12}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F2}, ActionKind::ReservedNoOp, 0},
-
-    // Editor management and display
-    {{true, false, false, VK_OEM_5}, ActionKind::NppCommand, IDM_VIEW_GOTO_ANOTHER_VIEW},
-    {{true, false, false, 'B'}, ActionKind::NppCommand, IDM_VIEW_FILEBROWSER},
-    {{true, false, true, 'E'}, ActionKind::NppCommand, IDM_VIEW_SWITCHTO_FILEBROWSER},
-    {{true, false, true, 'F'}, ActionKind::NppCommand, IDM_SEARCH_FINDINFILES},
-    {{true, false, true, 'G'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, true, 'D'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, true, 'X'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, true, 'H'}, ActionKind::NppCommand, IDM_SEARCH_FINDINFILES},
-    {{true, false, true, 'J'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, true, 'U'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, true, 'V'}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F11}, ActionKind::NppCommand, IDM_VIEW_FULLSCREENTOGGLE},
-    {{false, true, true, '0'}, ActionKind::NppCommand, IDM_VIEW_SWITCHTO_OTHER_VIEW},
-
-    // Terminal-ish approximation
-    {{true, false, false, VK_OEM_3}, ActionKind::NppCommand, IDM_FILE_OPEN_CMD},
-    {{true, false, true, VK_OEM_3}, ActionKind::ReservedNoOp, 0},
-
-    // Reserve conflicting debug function keys from default N++ behavior.
-    {{false, false, false, VK_F5}, ActionKind::ReservedNoOp, 0},
-    {{false, false, true, VK_F5}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F9}, ActionKind::ReservedNoOp, 0},
-    {{false, false, false, VK_F10}, ActionKind::ReservedNoOp, 0},
-};
-
-const std::vector<ChordBinding> kChordBindings = {
-    {{true, false, false, 'K'}, {true, false, true, 'S'}, ActionKind::NppCommand, IDM_SETTING_SHORTCUT_MAPPER},
-    {{true, false, false, 'K'}, {false, false, false, 'S'}, ActionKind::NppCommand, IDM_FILE_SAVEALL},
-    {{true, false, false, 'K'}, {true, false, true, 'W'}, ActionKind::NppCommand, IDM_FILE_CLOSEALL},
-    {{true, false, false, 'K'}, {true, false, true, 'C'}, ActionKind::NppCommand, IDM_EDIT_STREAM_COMMENT},
-    {{true, false, false, 'K'}, {true, false, true, 'U'}, ActionKind::NppCommand, IDM_EDIT_STREAM_UNCOMMENT},
-    {{true, false, false, 'K'}, {true, false, true, '0'}, ActionKind::NppCommand, IDM_VIEW_FOLDALL},
-    {{true, false, false, 'K'}, {true, false, true, 'J'}, ActionKind::NppCommand, IDM_VIEW_UNFOLDALL},
-    {{true, false, false, 'K'}, {true, false, true, 'D'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTSSKIP},
-    {{true, false, false, 'K'}, {true, false, true, VK_OEM_4}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {true, false, true, VK_OEM_6}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, 'P'}, ActionKind::NppCommand, IDM_EDIT_FULLPATHTOCLIP},
-    {{true, false, false, 'K'}, {false, false, false, 'R'}, ActionKind::NppCommand, IDM_EDIT_OPENINFOLDER},
-    {{true, false, false, 'K'}, {false, false, false, 'O'}, ActionKind::NppCommand, IDM_VIEW_GOTO_NEW_INSTANCE},
-    {{true, false, false, 'K'}, {false, false, false, 'Z'}, ActionKind::NppCommand, IDM_VIEW_DISTRACTIONFREE},
-    {{true, false, false, 'K'}, {false, false, false, 'V'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, 'F'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, 'M'}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, VK_RETURN}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, VK_LEFT}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {false, false, false, VK_RIGHT}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {true, false, false, VK_LEFT}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {true, false, false, VK_RIGHT}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {true, false, false, VK_F12}, ActionKind::ReservedNoOp, 0},
-    {{true, false, false, 'K'}, {true, false, true, 'X'}, ActionKind::NppCommand, IDM_EDIT_TRIMTRAILING},
-};
+#include "GeneratedBindings.inc"
 
 bool ExecuteAction(ActionKind kind, int id, HWND editor) {
     switch (kind) {
@@ -364,6 +209,19 @@ bool ExecuteAction(ActionKind kind, int id, HWND editor) {
         case ActionKind::CopyAllowLine: {
             const bool selectionEmpty = RunSci(editor, SCI_GETSELECTIONEMPTY) != 0;
             RunSci(editor, selectionEmpty ? SCI_COPYALLOWLINE : SCI_COPY);
+            return true;
+        }
+
+        case ActionKind::ToggleFoldAtCaret: {
+            sptr_t line = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(RunSci(editor, SCI_GETCURRENTPOS)));
+            sptr_t level = RunSci(editor, SCI_GETFOLDLEVEL, static_cast<uptr_t>(line));
+            if ((level & SC_FOLDLEVELHEADERFLAG) == 0) {
+                const sptr_t parent = RunSci(editor, SCI_GETFOLDPARENT, static_cast<uptr_t>(line));
+                if (parent >= 0) {
+                    line = parent;
+                }
+            }
+            RunSci(editor, SCI_TOGGLEFOLD, static_cast<uptr_t>(line));
             return true;
         }
 
@@ -474,21 +332,6 @@ bool TryHandleShortcut(HWND editor, WPARAM wParam) {
         if (binding.key == currentKey) {
             return ExecuteAction(binding.kind, binding.id, editor);
         }
-    }
-
-    if (currentKey.ctrl && !currentKey.alt && !currentKey.shift && (vk == VK_OEM_PLUS || vk == VK_ADD)) {
-        RunNppCommand(IDM_VIEW_ZOOMIN);
-        return true;
-    }
-
-    if (currentKey.ctrl && !currentKey.alt && !currentKey.shift && (vk == VK_OEM_MINUS || vk == VK_SUBTRACT)) {
-        RunNppCommand(IDM_VIEW_ZOOMOUT);
-        return true;
-    }
-
-    if (currentKey.ctrl && !currentKey.alt && !currentKey.shift && vk == '0') {
-        RunNppCommand(IDM_VIEW_ZOOMRESTORE);
-        return true;
     }
 
     return false;
@@ -606,14 +449,18 @@ void ToggleKeymap() {
 }
 
 void ShowBindingsSummary() {
-    const wchar_t* summary =
-        L"VSCode Keymap NPP strict mode\n\n"
-        L"- Enforces near 1:1 mappings where Notepad++ equivalents exist\n"
-        L"- Implements missing line operations (move/duplicate/insert/delete)\n"
-        L"- Uses a pre-accelerator hook to block conflicting default N++ shortcuts\n"
-        L"- Unsupported VSCode-only shortcuts are reserved as no-op\n"
-        L"  so they do not trigger non-VSCode Notepad++ actions.";
-    ::MessageBox(g_nppData._nppHandle, summary, kPluginName, MB_OK | MB_ICONINFORMATION);
+    std::wstring summary = L"VSCode Keymap NPP strict mode\n\n";
+    summary += L"Source bindings: ";
+    summary += std::to_wstring(kVsCodeSourceBindingCount);
+    summary += L"\nMapped: ";
+    summary += std::to_wstring(kMappedBindingCount);
+    summary += L"\nReserved no-op: ";
+    summary += std::to_wstring(kReservedNoOpBindingCount);
+    summary += L"\nDocumented unported: ";
+    summary += std::to_wstring(kDocumentedUnportedBindingCount);
+    summary += L"\n\nCoverage report installs under:\n";
+    summary += L"plugins\\doc\\VSCodeKeymapNpp\\VSCodeKeybindingCoverage.MD";
+    ::MessageBox(g_nppData._nppHandle, summary.c_str(), kPluginName, MB_OK | MB_ICONINFORMATION);
 }
 
 void RegisterPluginCommands() {
@@ -623,7 +470,7 @@ void RegisterPluginCommands() {
     ::wcsncpy_s(g_funcItems[0]._itemName, menuItemSize, L"Toggle VSCode Strict Keymap", _TRUNCATE);
     g_funcItems[0]._pFunc = ToggleKeymap;
 
-    ::wcsncpy_s(g_funcItems[1]._itemName, menuItemSize, L"Show Strict Mapping Summary", _TRUNCATE);
+    ::wcsncpy_s(g_funcItems[1]._itemName, menuItemSize, L"Show VSCode Coverage Summary", _TRUNCATE);
     g_funcItems[1]._pFunc = ShowBindingsSummary;
 }
 
