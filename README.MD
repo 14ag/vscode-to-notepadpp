@@ -138,6 +138,16 @@ Or under a machine-wide Notepad++ install:
 Use the DLL whose architecture matches the installed Notepad++ build exactly.
 Restart Notepad++ after copying the plugin.
 
+## Feedback and contributions
+
+If a shortcut still behaves differently from VS Code, opens the wrong
+Notepad++ command, or should be mapped to a better equivalent, please open an
+issue. Shortcut parity is easiest to improve with concrete reproduction steps
+from real editor use.
+
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Change history: [CHANGELOG.md](CHANGELOG.md)
+
 ## Limits
 
 This is still not a full VS Code emulation layer. Workbench-only features like
