@@ -152,17 +152,6 @@ sptr_t FindSelectionState(HWND editor, const SelectionState& selection) {
     return -1;
 }
 
-sptr_t FindSelectionOnCaretLine(HWND editor, const SelectionState& selection) {
-    const sptr_t targetLine = EndpointLine(editor, selection.caret);
-    const sptr_t selectionCount = RunSci(editor, SCI_GETSELECTIONS);
-    for (sptr_t i = 0; i < selectionCount; ++i) {
-        if (EndpointLine(editor, GetSelectionState(editor, i).caret) == targetLine) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 void SetSelectionState(HWND editor, sptr_t selectionIndex, const SelectionState& selection) {
     RunSci(editor, SCI_SETSELECTIONNCARET, static_cast<uptr_t>(selectionIndex), selection.caret.position);
     RunSci(editor, SCI_SETSELECTIONNANCHOR, static_cast<uptr_t>(selectionIndex), selection.anchor.position);
@@ -314,7 +303,7 @@ bool InsertCursorOnAdjacentLine(HWND editor, sptr_t lineDelta) {
         return true;
     }
 
-    const sptr_t existingSelection = FindSelectionOnCaretLine(editor, *movedSelection);
+    const sptr_t existingSelection = FindSelectionState(editor, *movedSelection);
     if (existingSelection >= 0) {
         RunSci(editor, SCI_SETMAINSELECTION, static_cast<uptr_t>(existingSelection));
         RunSci(editor, SCI_SCROLLCARET);

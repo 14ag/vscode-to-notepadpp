@@ -33,6 +33,7 @@ NppData g_nppData{};
 FuncItem g_funcItems[2]{};
 bool g_enabled = true;
 bool g_syncingBindingList = false;
+size_t g_shortcutHandlingPauseDepth = 0;
 std::vector<bool> g_bindingEnabled;
 
 WNDPROC g_mainOldProc = nullptr;
@@ -49,7 +50,28 @@ std::optional<PendingChord> g_pendingChord;
 
 #include "GeneratedBindings.inc"
 
+constexpr unsigned long long kBindingStorageHashOffset = 14695981039346656037ull;
+constexpr unsigned long long kBindingStorageHashPrime = 1099511628211ull;
+
 extern "C" IMAGE_DOS_HEADER __ImageBase;
+
+class ScopedShortcutHandlingPause {
+public:
+    ScopedShortcutHandlingPause() {
+        ++g_shortcutHandlingPauseDepth;
+        g_pendingChord.reset();
+    }
+
+    ~ScopedShortcutHandlingPause() {
+        if (g_shortcutHandlingPauseDepth > 0) {
+            --g_shortcutHandlingPauseDepth;
+        }
+        g_pendingChord.reset();
+    }
+
+    ScopedShortcutHandlingPause(const ScopedShortcutHandlingPause&) = delete;
+    ScopedShortcutHandlingPause& operator=(const ScopedShortcutHandlingPause&) = delete;
+};
 
 HINSTANCE ModuleInstance() {
     return reinterpret_cast<HINSTANCE>(&__ImageBase);
@@ -99,6 +121,57 @@ std::wstring GetWindowTextValue(HWND control) {
     return text;
 }
 
+unsigned long long HashBindingStorageComponent(unsigned long long hash, std::wstring_view value) {
+    for (const wchar_t ch : value) {
+        hash ^= static_cast<unsigned long long>(static_cast<unsigned int>(ch));
+        hash *= kBindingStorageHashPrime;
+    }
+    hash ^= 0xffull;
+    hash *= kBindingStorageHashPrime;
+    return hash;
+}
+
+unsigned long long BindingStorageHash(const BindingReferenceEntry& binding) {
+    auto hash = kBindingStorageHashOffset;
+    hash = HashBindingStorageComponent(hash, binding.command ? binding.command : L"");
+    hash = HashBindingStorageComponent(hash, binding.winKey ? binding.winKey : L"");
+    return hash;
+}
+
+std::wstring BuildBindingStorageToken(const BindingReferenceEntry& binding) {
+    wchar_t token[19]{};
+    std::swprintf(token, std::size(token), L"h:%016llx", BindingStorageHash(binding));
+    return token;
+}
+
+std::optional<size_t> FindBindingIndexFromPersistedToken(std::wstring_view token) {
+    std::wstring tokenText(token);
+    if (tokenText.empty()) {
+        return std::nullopt;
+    }
+
+    if (tokenText.rfind(L"h:", 0) == 0) {
+        wchar_t* parsedEnd = nullptr;
+        const auto parsedHash = std::wcstoull(tokenText.c_str() + 2, &parsedEnd, 16);
+        if (parsedEnd != tokenText.c_str() + 2 && *parsedEnd == L'\0') {
+            for (size_t index = 0; index < kBindingReferences.size(); ++index) {
+                if (kBindingReferences[index].pluginHandled && BindingStorageHash(kBindingReferences[index]) == parsedHash) {
+                    return index;
+                }
+            }
+        }
+        return std::nullopt;
+    }
+
+    wchar_t* parsedEnd = nullptr;
+    const auto legacyIndex = std::wcstoul(tokenText.c_str(), &parsedEnd, 10);
+    if (parsedEnd == tokenText.c_str() || *parsedEnd != L'\0' || legacyIndex >= kBindingReferences.size()) {
+        return std::nullopt;
+    }
+
+    return static_cast<size_t>(legacyIndex);
+}
+
 std::wstring BuildDisabledBindingList() {
     std::wstring value;
     for (size_t index = 0; index < kBindingReferences.size(); ++index) {
@@ -108,7 +181,7 @@ std::wstring BuildDisabledBindingList() {
         if (!value.empty()) {
             value += L",";
         }
-        value += std::to_wstring(index);
+        value += BuildBindingStorageToken(kBindingReferences[index]);
     }
     return value;
 }
@@ -121,13 +194,12 @@ void ApplyDisabledBindingList(const std::wstring& value) {
             continue;
         }
 
-        wchar_t* parsedEnd = nullptr;
-        const unsigned long index = std::wcstoul(token.c_str(), &parsedEnd, 10);
-        if (parsedEnd == token.c_str() || *parsedEnd != L'\0' || index >= kBindingReferences.size()) {
+        const auto index = FindBindingIndexFromPersistedToken(token);
+        if (!index.has_value()) {
             continue;
         }
-        if (kBindingReferences[index].pluginHandled) {
-            g_bindingEnabled[index] = false;
+        if (kBindingReferences[*index].pluginHandled) {
+            g_bindingEnabled[*index] = false;
         }
     }
 }
@@ -195,6 +267,10 @@ void SetBindingEnabled(size_t referenceIndex, bool enabled) {
 
 std::wstring BuildReferenceSummaryText() {
     const auto enabledCount = static_cast<size_t>(std::count(g_bindingEnabled.begin(), g_bindingEnabled.end(), true));
+    const auto configurableCount = static_cast<size_t>(
+        std::count_if(kBindingReferences.begin(), kBindingReferences.end(), [](const auto& binding) {
+            return binding.pluginHandled;
+        }));
 
     std::wstring text;
     if (g_enabled) {
@@ -205,7 +281,7 @@ std::wstring BuildReferenceSummaryText() {
     text += L"\r\nChecked rows: ";
     text += std::to_wstring(enabledCount);
     text += L" / ";
-    text += std::to_wstring(kMappedBindingCount + kReservedNoOpBindingCount);
+    text += std::to_wstring(configurableCount);
     text += L"    Settings file: ";
     text += SettingsFilePathText();
     return text;
@@ -492,7 +568,7 @@ bool TryHandleChord(const KeyStroke& currentKey, HWND editor) {
 }
 
 bool TryHandleShortcut(HWND editor, WPARAM wParam) {
-    if (!g_enabled || editor == nullptr) {
+    if (g_shortcutHandlingPauseDepth > 0 || !g_enabled || editor == nullptr) {
         return false;
     }
 
@@ -617,6 +693,7 @@ void RemoveMessageHook() {
 }
 
 void ShowConfigReferenceDialog() {
+    const ScopedShortcutHandlingPause pause;
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_LISTVIEW_CLASSES};
     ::InitCommonControlsEx(&controls);
     ::DialogBoxParamW(ModuleInstance(),
@@ -627,6 +704,7 @@ void ShowConfigReferenceDialog() {
 }
 
 void ShowAboutDialog() {
+    const ScopedShortcutHandlingPause pause;
     std::wstring summary = L"VSCode Keymap NPP\r\n\r\n";
     summary += L"VSCode Keymap NPP strict mode\r\n\r\n";
     summary += L"- Enforces near 1:1 mappings where Notepad++ equivalents exist\r\n";
