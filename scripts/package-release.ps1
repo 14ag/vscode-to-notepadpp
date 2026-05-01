@@ -137,7 +137,6 @@ function Package-Platform {
     }
 
     $stageRoot = Join-Path $DistRoot ("_package-{0}" -f $Spec.Name)
-    $docDir = Join-Path $stageRoot "doc"
     $zipPath = Join-Path $DistRoot ("VSCodeKeymapNpp-{0}-{1}.zip" -f $ResolvedVersion, $Spec.Name)
 
     if (Test-Path -LiteralPath $stageRoot) {
@@ -149,7 +148,6 @@ function Package-Platform {
 
     New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
     Copy-Item -LiteralPath $dllPath -Destination (Join-Path $stageRoot "VSCodeKeymapNpp.dll")
-    Copy-Docs -Destination $docDir
 
     Compress-Archive `
         -Path (Join-Path $stageRoot "*") `
