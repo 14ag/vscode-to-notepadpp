@@ -1,65 +1,44 @@
 #include <windows.h>
+#include <commctrl.h>
 
+#include <algorithm>
 #include <cwchar>
+#include <cwctype>
+#include <filesystem>
 #include <optional>
+#include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include "Notepad_plus_msgs.h"
 #include "PluginInterface.h"
-#include "menuCmdID.h"
+#include "handlers/ActionHandlers.h"
 
 namespace {
 constexpr wchar_t kPluginName[] = L"VSCode Keymap NPP";
 constexpr DWORD kChordTimeoutMs = 1500;
+constexpr int kConfigDialogId = 101;
+constexpr int kEnableKeymapCheckboxId = 1001;
+constexpr int kReferenceFilterEditId = 1002;
+constexpr int kBindingsListId = 1003;
+constexpr int kReferenceSummaryId = 1004;
+constexpr wchar_t kSettingsSectionGeneral[] = L"General";
+constexpr wchar_t kSettingsSectionBindings[] = L"Bindings";
+constexpr wchar_t kSettingsKeyEnabled[] = L"KeymapEnabled";
+constexpr wchar_t kLegacySettingsKeyPluginDisabled[] = L"PluginDisabled";
+constexpr wchar_t kSettingsKeyDisabledBindings[] = L"DisabledBindings";
 
 NppData g_nppData{};
 FuncItem g_funcItems[2]{};
 bool g_enabled = true;
+bool g_syncingBindingList = false;
+std::vector<bool> g_bindingEnabled;
 
 WNDPROC g_mainOldProc = nullptr;
 WNDPROC g_scintillaOldProc[2] = {nullptr, nullptr};
 HHOOK g_messageHook = nullptr;
 DWORD g_nppThreadId = 0;
-
-struct KeyStroke {
-    bool ctrl;
-    bool alt;
-    bool shift;
-    UINT vk;
-};
-
-bool operator==(const KeyStroke& lhs, const KeyStroke& rhs) {
-    return lhs.ctrl == rhs.ctrl && lhs.alt == rhs.alt && lhs.shift == rhs.shift && lhs.vk == rhs.vk;
-}
-
-enum class ActionKind {
-    NppCommand,
-    SciCommand,
-    DuplicateLineUp,
-    CutAllowLine,
-    CopyAllowLine,
-    ToggleFoldAtCaret,
-    ToggleStreamComment,
-    SelectCurrentLine,
-    InsertLineBelow,
-    InsertLineAbove,
-    ScrollPageUpNoCaret,
-    ScrollPageDownNoCaret,
-    ReservedNoOp,
-};
-
-struct ShortcutBinding {
-    KeyStroke key;
-    ActionKind kind;
-    int id;
-};
-
-struct ChordBinding {
-    KeyStroke first;
-    KeyStroke second;
-    ActionKind kind;
-    int id;
-};
 
 struct PendingChord {
     KeyStroke first;
@@ -67,6 +46,373 @@ struct PendingChord {
 };
 
 std::optional<PendingChord> g_pendingChord;
+
+#include "GeneratedBindings.inc"
+
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+
+HINSTANCE ModuleInstance() {
+    return reinterpret_cast<HINSTANCE>(&__ImageBase);
+}
+
+void ResetBindingStatesToDefaults() {
+    g_bindingEnabled.assign(kBindingReferences.size(), false);
+    for (size_t index = 0; index < kBindingReferences.size(); ++index) {
+        g_bindingEnabled[index] = kBindingReferences[index].pluginHandled;
+    }
+}
+
+std::filesystem::path SettingsFilePath() {
+    if (g_nppData._nppHandle == nullptr) {
+        return {};
+    }
+
+    std::vector<wchar_t> buffer(MAX_PATH, L'\0');
+    const auto copied = static_cast<size_t>(::SendMessage(g_nppData._nppHandle,
+                                                          NPPM_GETPLUGINSCONFIGDIR,
+                                                          static_cast<WPARAM>(buffer.size()),
+                                                          reinterpret_cast<LPARAM>(buffer.data())));
+    if (copied == 0 || buffer[0] == L'\0') {
+        return {};
+    }
+
+    return std::filesystem::path(buffer.data()) / L"VSCodeKeymapNpp.ini";
+}
+
+std::wstring SettingsFilePathText() {
+    const auto path = SettingsFilePath();
+    if (path.empty()) {
+        return L"(Notepad++ plugin config directory unavailable)";
+    }
+    return path.wstring();
+}
+
+std::wstring GetWindowTextValue(HWND control) {
+    const int length = ::GetWindowTextLengthW(control);
+    if (length <= 0) {
+        return {};
+    }
+
+    std::wstring text(static_cast<size_t>(length) + 1, L'\0');
+    ::GetWindowTextW(control, text.data(), length + 1);
+    text.resize(static_cast<size_t>(length));
+    return text;
+}
+
+std::wstring BuildDisabledBindingList() {
+    std::wstring value;
+    for (size_t index = 0; index < kBindingReferences.size(); ++index) {
+        if (!kBindingReferences[index].pluginHandled || g_bindingEnabled[index]) {
+            continue;
+        }
+        if (!value.empty()) {
+            value += L",";
+        }
+        value += std::to_wstring(index);
+    }
+    return value;
+}
+
+void ApplyDisabledBindingList(const std::wstring& value) {
+    std::wstringstream stream(value);
+    std::wstring token;
+    while (std::getline(stream, token, L',')) {
+        if (token.empty()) {
+            continue;
+        }
+
+        wchar_t* parsedEnd = nullptr;
+        const unsigned long index = std::wcstoul(token.c_str(), &parsedEnd, 10);
+        if (parsedEnd == token.c_str() || *parsedEnd != L'\0' || index >= kBindingReferences.size()) {
+            continue;
+        }
+        if (kBindingReferences[index].pluginHandled) {
+            g_bindingEnabled[index] = false;
+        }
+    }
+}
+
+void SaveSettings() {
+    const auto settingsPath = SettingsFilePath();
+    if (settingsPath.empty()) {
+        return;
+    }
+
+    std::filesystem::create_directories(settingsPath.parent_path());
+    ::WritePrivateProfileStringW(
+        kSettingsSectionGeneral, kSettingsKeyEnabled, g_enabled ? L"1" : L"0", settingsPath.c_str());
+    ::WritePrivateProfileStringW(kSettingsSectionGeneral, kLegacySettingsKeyPluginDisabled, nullptr, settingsPath.c_str());
+
+    const auto disabledBindings = BuildDisabledBindingList();
+    ::WritePrivateProfileStringW(kSettingsSectionBindings,
+                                 kSettingsKeyDisabledBindings,
+                                 disabledBindings.empty() ? L"" : disabledBindings.c_str(),
+                                 settingsPath.c_str());
+}
+
+void LoadSettings() {
+    ResetBindingStatesToDefaults();
+
+    const auto settingsPath = SettingsFilePath();
+    if (settingsPath.empty()) {
+        return;
+    }
+
+    g_enabled = ::GetPrivateProfileIntW(kSettingsSectionGeneral, kSettingsKeyEnabled, 1, settingsPath.c_str()) != 0;
+    const bool legacyPluginDisabled =
+        ::GetPrivateProfileIntW(kSettingsSectionGeneral, kLegacySettingsKeyPluginDisabled, 0, settingsPath.c_str()) !=
+        0;
+    g_enabled = g_enabled && !legacyPluginDisabled;
+
+    std::wstring disabledBindings(4096, L'\0');
+    const auto length = ::GetPrivateProfileStringW(kSettingsSectionBindings,
+                                                   kSettingsKeyDisabledBindings,
+                                                   L"",
+                                                   disabledBindings.data(),
+                                                   static_cast<DWORD>(disabledBindings.size()),
+                                                   settingsPath.c_str());
+    disabledBindings.resize(length);
+    ApplyDisabledBindingList(disabledBindings);
+}
+
+bool IsBindingConfigurable(size_t referenceIndex) {
+    return referenceIndex < kBindingReferences.size() && kBindingReferences[referenceIndex].pluginHandled;
+}
+
+bool IsBindingEnabled(size_t referenceIndex) {
+    return IsBindingConfigurable(referenceIndex) && g_bindingEnabled[referenceIndex];
+}
+
+void SetBindingEnabled(size_t referenceIndex, bool enabled) {
+    if (!IsBindingConfigurable(referenceIndex)) {
+        return;
+    }
+
+    g_bindingEnabled[referenceIndex] = enabled;
+    g_pendingChord.reset();
+    SaveSettings();
+}
+
+std::wstring BuildReferenceSummaryText() {
+    const auto enabledCount = static_cast<size_t>(std::count(g_bindingEnabled.begin(), g_bindingEnabled.end(), true));
+
+    std::wstring text;
+    if (g_enabled) {
+        text = L"Mode: intercepting selected VS Code shortcuts";
+    } else {
+        text = L"Mode: pass-through (saved selections are preserved)";
+    }
+    text += L"\r\nChecked rows: ";
+    text += std::to_wstring(enabledCount);
+    text += L" / ";
+    text += std::to_wstring(kMappedBindingCount + kReservedNoOpBindingCount);
+    text += L"    Settings file: ";
+    text += SettingsFilePathText();
+    return text;
+}
+
+std::wstring BuildSectionLabel(const BindingReferenceEntry& entry) {
+    std::wstring value = entry.section ? entry.section : L"";
+    if (entry.subsection != nullptr && entry.subsection[0] != L'\0') {
+        if (!value.empty()) {
+            value += L" / ";
+        }
+        value += entry.subsection;
+    }
+    return value;
+}
+
+bool ContainsCaseInsensitive(std::wstring_view text, std::wstring_view needle) {
+    if (needle.empty()) {
+        return true;
+    }
+
+    const auto match = std::search(text.begin(),
+                                   text.end(),
+                                   needle.begin(),
+                                   needle.end(),
+                                   [](wchar_t lhs, wchar_t rhs) { return std::towlower(lhs) == std::towlower(rhs); });
+    return match != text.end();
+}
+
+bool BindingMatchesFilter(const BindingReferenceEntry& binding, std::wstring_view filter) {
+    if (filter.empty()) {
+        return true;
+    }
+
+    const auto section = BuildSectionLabel(binding);
+    return ContainsCaseInsensitive(binding.winKey ? binding.winKey : L"", filter) ||
+           ContainsCaseInsensitive(section, filter) ||
+           ContainsCaseInsensitive(binding.label ? binding.label : L"", filter) ||
+           ContainsCaseInsensitive(binding.command ? binding.command : L"", filter) ||
+           ContainsCaseInsensitive(binding.status ? binding.status : L"", filter) ||
+           ContainsCaseInsensitive(binding.handler ? binding.handler : L"", filter) ||
+           ContainsCaseInsensitive(binding.target ? binding.target : L"", filter) ||
+           ContainsCaseInsensitive(binding.notes ? binding.notes : L"", filter);
+}
+
+void InsertReferenceColumns(HWND listView) {
+    struct ColumnSpec {
+        const wchar_t* title;
+        int width;
+    };
+
+    const ColumnSpec columns[] = {
+        {L"Key", 120},
+        {L"Section", 170},
+        {L"Label", 170},
+        {L"Command", 240},
+        {L"Status", 110},
+        {L"Handler", 120},
+        {L"Target", 180},
+        {L"Notes", 420},
+    };
+
+    for (int index = 0; index < static_cast<int>(std::size(columns)); ++index) {
+        LVCOLUMNW column{};
+        column.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        column.cx = columns[index].width;
+        column.pszText = const_cast<LPWSTR>(columns[index].title);
+        column.iSubItem = index;
+        ListView_InsertColumn(listView, index, &column);
+    }
+}
+
+size_t PopulateReferenceList(HWND dialog, HWND listView) {
+    const auto filter = GetWindowTextValue(::GetDlgItem(dialog, kReferenceFilterEditId));
+    g_syncingBindingList = true;
+    ListView_DeleteAllItems(listView);
+
+    int visibleIndex = 0;
+    for (size_t referenceIndex = 0; referenceIndex < kBindingReferences.size(); ++referenceIndex) {
+        const auto& binding = kBindingReferences[referenceIndex];
+        if (!BindingMatchesFilter(binding, filter)) {
+            continue;
+        }
+
+        LVITEMW item{};
+        item.mask = LVIF_TEXT | LVIF_PARAM;
+        item.iItem = visibleIndex;
+        item.lParam = static_cast<LPARAM>(referenceIndex);
+        item.pszText = const_cast<LPWSTR>(binding.winKey);
+        ListView_InsertItem(listView, &item);
+
+        const auto section = BuildSectionLabel(binding);
+        ListView_SetItemText(listView, visibleIndex, 1, const_cast<LPWSTR>(section.c_str()));
+        ListView_SetItemText(listView, visibleIndex, 2, const_cast<LPWSTR>(binding.label));
+        ListView_SetItemText(listView, visibleIndex, 3, const_cast<LPWSTR>(binding.command));
+        ListView_SetItemText(listView, visibleIndex, 4, const_cast<LPWSTR>(binding.status));
+        ListView_SetItemText(listView, visibleIndex, 5, const_cast<LPWSTR>(binding.handler));
+        ListView_SetItemText(listView, visibleIndex, 6, const_cast<LPWSTR>(binding.target));
+        ListView_SetItemText(listView, visibleIndex, 7, const_cast<LPWSTR>(binding.notes));
+        ListView_SetCheckState(listView, visibleIndex, IsBindingEnabled(referenceIndex) ? TRUE : FALSE);
+        ++visibleIndex;
+    }
+
+    g_syncingBindingList = false;
+    return static_cast<size_t>(visibleIndex);
+}
+
+size_t RefreshReferenceList(HWND dialog) {
+    const HWND listView = ::GetDlgItem(dialog, kBindingsListId);
+    const size_t visibleCount = PopulateReferenceList(dialog, listView);
+    ::SetDlgItemTextW(dialog, kReferenceSummaryId, BuildReferenceSummaryText().c_str());
+    return visibleCount;
+}
+
+void ApplyDialogSettings(HWND dialog) {
+    g_enabled = (::IsDlgButtonChecked(dialog, kEnableKeymapCheckboxId) == BST_CHECKED);
+    g_pendingChord.reset();
+    SaveSettings();
+}
+
+size_t GetReferenceIndexForListItem(HWND listView, int itemIndex) {
+    LVITEMW item{};
+    item.mask = LVIF_PARAM;
+    item.iItem = itemIndex;
+    item.iSubItem = 0;
+    if (!ListView_GetItem(listView, &item) || item.lParam < 0) {
+        return kBindingReferences.size();
+    }
+    return static_cast<size_t>(item.lParam);
+}
+
+INT_PTR CALLBACK ConfigReferenceDialogProc(HWND dialog, UINT msg, WPARAM wParam, LPARAM lParam) {
+    switch (msg) {
+        case WM_INITDIALOG: {
+            const HWND listView = ::GetDlgItem(dialog, kBindingsListId);
+            ListView_SetExtendedListViewStyle(
+                listView, LVS_EX_CHECKBOXES | LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+            InsertReferenceColumns(listView);
+            RefreshReferenceList(dialog);
+
+            ::CheckDlgButton(dialog, kEnableKeymapCheckboxId, g_enabled ? BST_CHECKED : BST_UNCHECKED);
+            return TRUE;
+        }
+
+        case WM_NOTIFY: {
+            auto* header = reinterpret_cast<NMHDR*>(lParam);
+            if (header == nullptr || header->idFrom != kBindingsListId || header->code != LVN_ITEMCHANGED) {
+                break;
+            }
+
+            auto* changed = reinterpret_cast<NMLISTVIEW*>(lParam);
+            if (g_syncingBindingList || changed->iItem < 0 || (changed->uChanged & LVIF_STATE) == 0) {
+                break;
+            }
+
+            const bool oldChecked = ((changed->uOldState & LVIS_STATEIMAGEMASK) >> 12) == 2;
+            const bool newChecked = ListView_GetCheckState(header->hwndFrom, changed->iItem) != FALSE;
+            if (oldChecked == newChecked) {
+                break;
+            }
+
+            const auto referenceIndex = GetReferenceIndexForListItem(header->hwndFrom, changed->iItem);
+            if (referenceIndex >= kBindingReferences.size()) {
+                return TRUE;
+            }
+
+            if (!IsBindingConfigurable(referenceIndex)) {
+                g_syncingBindingList = true;
+                ListView_SetCheckState(header->hwndFrom, changed->iItem, FALSE);
+                g_syncingBindingList = false;
+                return TRUE;
+            }
+
+            SetBindingEnabled(referenceIndex, newChecked);
+            ::SetDlgItemTextW(dialog, kReferenceSummaryId, BuildReferenceSummaryText().c_str());
+            return TRUE;
+        }
+
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case kEnableKeymapCheckboxId:
+                    if (HIWORD(wParam) == BN_CLICKED) {
+                        ApplyDialogSettings(dialog);
+                        ::SetDlgItemTextW(dialog, kReferenceSummaryId, BuildReferenceSummaryText().c_str());
+                    }
+                    return TRUE;
+
+                case kReferenceFilterEditId:
+                    if (HIWORD(wParam) == EN_CHANGE) {
+                        RefreshReferenceList(dialog);
+                    }
+                    return TRUE;
+
+                case IDOK:
+                case IDCANCEL:
+                    ::EndDialog(dialog, LOWORD(wParam));
+                    return TRUE;
+            }
+            break;
+
+        case WM_CLOSE:
+            ::EndDialog(dialog, IDCANCEL);
+            return TRUE;
+    }
+
+    return FALSE;
+}
 
 HWND ActiveScintilla() {
     int which = 0;
@@ -88,83 +434,8 @@ bool IsPressed(int vkey) {
     return (::GetKeyState(vkey) & 0x8000) != 0;
 }
 
-void RunNppCommand(int commandId) {
-    ::SendMessage(g_nppData._nppHandle, NPPM_MENUCOMMAND, 0, static_cast<LPARAM>(commandId));
-}
-
-sptr_t RunSci(HWND editor, UINT message, uptr_t wParam = 0, sptr_t lParam = 0) {
-    return static_cast<sptr_t>(
-        ::SendMessage(editor, message, static_cast<WPARAM>(wParam), static_cast<LPARAM>(lParam)));
-}
-
 KeyStroke CurrentKeyStroke(UINT vk) {
     return KeyStroke{IsPressed(VK_CONTROL), IsPressed(VK_MENU), IsPressed(VK_SHIFT), vk};
-}
-
-std::string GetLineText(HWND editor, sptr_t line) {
-    const sptr_t lengthWithEol = RunSci(editor, SCI_GETLINE, static_cast<uptr_t>(line), 0);
-    if (lengthWithEol <= 0) {
-        return {};
-    }
-
-    std::string buffer(static_cast<size_t>(lengthWithEol), '\0');
-    RunSci(editor, SCI_GETLINE, static_cast<uptr_t>(line), reinterpret_cast<sptr_t>(buffer.data()));
-    while (!buffer.empty() && (buffer.back() == '\0' || buffer.back() == '\r' || buffer.back() == '\n')) {
-        buffer.pop_back();
-    }
-    return buffer;
-}
-
-std::string_view TrimLeftAscii(std::string_view text) {
-    size_t i = 0;
-    while (i < text.size()) {
-        const char ch = text[i];
-        if (ch != ' ' && ch != '\t') {
-            break;
-        }
-        ++i;
-    }
-    return text.substr(i);
-}
-
-bool LooksLineCommented(std::string_view trimmed) {
-    static constexpr const char* kPrefixes[] = {"//", "#", "--", ";", "'", "REM ", "::"};
-    for (const char* prefix : kPrefixes) {
-        const size_t prefixLen = std::char_traits<char>::length(prefix);
-        if (trimmed.size() >= prefixLen && trimmed.substr(0, prefixLen) == prefix) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool ShouldUncommentSelection(HWND editor) {
-    const sptr_t selectionStart = RunSci(editor, SCI_GETSELECTIONSTART);
-    const sptr_t selectionEnd = RunSci(editor, SCI_GETSELECTIONEND);
-
-    sptr_t startLine = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(selectionStart));
-    sptr_t endLine = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(selectionEnd));
-    if (selectionEnd > selectionStart) {
-        const sptr_t endLineStart = RunSci(editor, SCI_POSITIONFROMLINE, static_cast<uptr_t>(endLine));
-        if (selectionEnd == endLineStart && endLine > startLine) {
-            --endLine;
-        }
-    }
-
-    bool sawNonEmptyLine = false;
-    for (sptr_t line = startLine; line <= endLine; ++line) {
-        const std::string text = GetLineText(editor, line);
-        const std::string_view trimmed = TrimLeftAscii(text);
-        if (trimmed.empty()) {
-            continue;
-        }
-        sawNonEmptyLine = true;
-        if (!LooksLineCommented(trimmed)) {
-            return false;
-        }
-    }
-
-    return sawNonEmptyLine;
 }
 
 void ConfigureEditor(HWND editor) {
@@ -183,127 +454,35 @@ void ConfigureEditors() {
     ConfigureEditor(g_nppData._scintillaSecondHandle);
 }
 
-#include "GeneratedBindings.inc"
-
-bool ExecuteAction(ActionKind kind, int id, HWND editor) {
-    switch (kind) {
-        case ActionKind::NppCommand:
-            RunNppCommand(id);
-            return true;
-
-        case ActionKind::SciCommand:
-            RunSci(editor, static_cast<UINT>(id));
-            return true;
-
-        case ActionKind::DuplicateLineUp:
-            RunNppCommand(IDM_EDIT_DUP_LINE);
-            RunNppCommand(IDM_EDIT_LINE_UP);
-            return true;
-
-        case ActionKind::CutAllowLine: {
-            const bool selectionEmpty = RunSci(editor, SCI_GETSELECTIONEMPTY) != 0;
-            RunSci(editor, selectionEmpty ? SCI_CUTALLOWLINE : SCI_CUT);
-            return true;
-        }
-
-        case ActionKind::CopyAllowLine: {
-            const bool selectionEmpty = RunSci(editor, SCI_GETSELECTIONEMPTY) != 0;
-            RunSci(editor, selectionEmpty ? SCI_COPYALLOWLINE : SCI_COPY);
-            return true;
-        }
-
-        case ActionKind::ToggleFoldAtCaret: {
-            sptr_t line = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(RunSci(editor, SCI_GETCURRENTPOS)));
-            sptr_t level = RunSci(editor, SCI_GETFOLDLEVEL, static_cast<uptr_t>(line));
-            if ((level & SC_FOLDLEVELHEADERFLAG) == 0) {
-                const sptr_t parent = RunSci(editor, SCI_GETFOLDPARENT, static_cast<uptr_t>(line));
-                if (parent >= 0) {
-                    line = parent;
-                }
-            }
-            RunSci(editor, SCI_TOGGLEFOLD, static_cast<uptr_t>(line));
-            return true;
-        }
-
-        case ActionKind::ToggleStreamComment:
-            RunNppCommand(ShouldUncommentSelection(editor) ? IDM_EDIT_STREAM_UNCOMMENT : IDM_EDIT_STREAM_COMMENT);
-            return true;
-
-        case ActionKind::SelectCurrentLine: {
-            const sptr_t currentPos = RunSci(editor, SCI_GETCURRENTPOS);
-            const sptr_t line = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(currentPos));
-            const sptr_t lineStart = RunSci(editor, SCI_POSITIONFROMLINE, static_cast<uptr_t>(line));
-            const sptr_t lineEnd = RunSci(editor, SCI_GETLINEENDPOSITION, static_cast<uptr_t>(line));
-            RunSci(editor, SCI_SETSEL, static_cast<uptr_t>(lineStart), lineEnd);
-            return true;
-        }
-
-        case ActionKind::InsertLineBelow: {
-            const sptr_t currentPos = RunSci(editor, SCI_GETCURRENTPOS);
-            const sptr_t line = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(currentPos));
-            const sptr_t lineEnd = RunSci(editor, SCI_GETLINEENDPOSITION, static_cast<uptr_t>(line));
-            RunSci(editor, SCI_SETSEL, static_cast<uptr_t>(lineEnd), lineEnd);
-            RunSci(editor, SCI_NEWLINE);
-            return true;
-        }
-
-        case ActionKind::InsertLineAbove: {
-            const sptr_t currentPos = RunSci(editor, SCI_GETCURRENTPOS);
-            const sptr_t line = RunSci(editor, SCI_LINEFROMPOSITION, static_cast<uptr_t>(currentPos));
-            const sptr_t lineStart = RunSci(editor, SCI_POSITIONFROMLINE, static_cast<uptr_t>(line));
-            RunSci(editor, SCI_SETSEL, static_cast<uptr_t>(lineStart), lineStart);
-            RunSci(editor, SCI_NEWLINE);
-            RunSci(editor, SCI_LINEUP);
-            RunSci(editor, SCI_HOME);
-            return true;
-        }
-
-        case ActionKind::ScrollPageUpNoCaret: {
-            sptr_t lines = RunSci(editor, SCI_LINESONSCREEN);
-            if (lines < 1) {
-                lines = 30;
-            }
-            RunSci(editor, SCI_LINESCROLL, 0, -lines);
-            return true;
-        }
-
-        case ActionKind::ScrollPageDownNoCaret: {
-            sptr_t lines = RunSci(editor, SCI_LINESONSCREEN);
-            if (lines < 1) {
-                lines = 30;
-            }
-            RunSci(editor, SCI_LINESCROLL, 0, lines);
-            return true;
-        }
-
-        case ActionKind::ReservedNoOp:
-            return true;
-    }
-
-    return false;
-}
-
 bool TryHandleChord(const KeyStroke& currentKey, HWND editor) {
     if (g_pendingChord.has_value()) {
         const DWORD age = ::GetTickCount() - g_pendingChord->startedAt;
         if (age <= kChordTimeoutMs) {
+            bool enabledPrefixMatched = false;
             for (const auto& chord : kChordBindings) {
-                if (chord.first == g_pendingChord->first && chord.second == currentKey) {
+                if (chord.first != g_pendingChord->first || !IsBindingEnabled(chord.referenceIndex)) {
+                    continue;
+                }
+
+                enabledPrefixMatched = true;
+                if (chord.second == currentKey) {
                     g_pendingChord.reset();
-                    return ExecuteAction(chord.kind, chord.id, editor);
+                    return ExecuteAction(chord.kind, chord.id, ActionContext{g_nppData._nppHandle, editor});
                 }
             }
 
-            // Strict mode: consume unknown second key after a valid chord prefix.
-            g_pendingChord.reset();
-            return true;
+            if (enabledPrefixMatched) {
+                // Strict mode: consume unknown second key after a valid chord prefix.
+                g_pendingChord.reset();
+                return true;
+            }
         }
 
         g_pendingChord.reset();
     }
 
     for (const auto& chord : kChordBindings) {
-        if (chord.first == currentKey) {
+        if (chord.first == currentKey && IsBindingEnabled(chord.referenceIndex)) {
             g_pendingChord = PendingChord{currentKey, ::GetTickCount()};
             return true;
         }
@@ -329,8 +508,8 @@ bool TryHandleShortcut(HWND editor, WPARAM wParam) {
     }
 
     for (const auto& binding : kShortcutBindings) {
-        if (binding.key == currentKey) {
-            return ExecuteAction(binding.kind, binding.id, editor);
+        if (binding.key == currentKey && IsBindingEnabled(binding.referenceIndex)) {
+            return ExecuteAction(binding.kind, binding.id, ActionContext{g_nppData._nppHandle, editor});
         }
     }
 
@@ -437,47 +616,50 @@ void RemoveMessageHook() {
     g_pendingChord.reset();
 }
 
-void ToggleKeymap() {
-    g_enabled = !g_enabled;
-    g_pendingChord.reset();
-
-    const wchar_t* status = g_enabled ? L"enabled" : L"disabled";
-    std::wstring message = L"VSCode strict keymap is now ";
-    message += status;
-    message += L".";
-    ::MessageBox(g_nppData._nppHandle, message.c_str(), kPluginName, MB_OK | MB_ICONINFORMATION);
+void ShowConfigReferenceDialog() {
+    INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_LISTVIEW_CLASSES};
+    ::InitCommonControlsEx(&controls);
+    ::DialogBoxParamW(ModuleInstance(),
+                      MAKEINTRESOURCEW(kConfigDialogId),
+                      g_nppData._nppHandle,
+                      ConfigReferenceDialogProc,
+                      0);
 }
 
-void ShowBindingsSummary() {
-    std::wstring summary = L"VSCode Keymap NPP strict mode\n\n";
+void ShowAboutDialog() {
+    std::wstring summary = L"VSCode Keymap NPP\r\n\r\n";
+    summary += L"VSCode Keymap NPP strict mode\r\n\r\n";
+    summary += L"- Enforces near 1:1 mappings where Notepad++ equivalents exist\r\n";
+    summary += L"- Implements missing line operations (move/duplicate/insert/delete)\r\n";
+    summary += L"- Uses a pre-accelerator hook to block conflicting default Notepad++ shortcuts\r\n";
+    summary += L"- Unsupported VS Code-only shortcuts are reserved as no-op so they do not trigger non-VS Code Notepad++ actions.\r\n\r\n";
     summary += L"Source bindings: ";
     summary += std::to_wstring(kVsCodeSourceBindingCount);
-    summary += L"\nMapped: ";
+    summary += L"\r\nMapped: ";
     summary += std::to_wstring(kMappedBindingCount);
-    summary += L"\nReserved no-op: ";
+    summary += L"\r\nReserved no-op: ";
     summary += std::to_wstring(kReservedNoOpBindingCount);
-    summary += L"\nDocumented unported: ";
+    summary += L"\r\nDocumented unported: ";
     summary += std::to_wstring(kDocumentedUnportedBindingCount);
-    summary += L"\n\nCoverage report installs under:\n";
-    summary += L"plugins\\doc\\VSCodeKeymapNpp\\VSCodeKeybindingCoverage.MD";
-    ::MessageBox(g_nppData._nppHandle, summary.c_str(), kPluginName, MB_OK | MB_ICONINFORMATION);
+    summary += L"\r\n\r\nUse Config/Reference to review and control handled shortcuts.\r\nRepository:\r\nhttps://github.com/14ag/vscode-to-notepadpp\r\n\r\nSettings file:\r\n";
+    summary += SettingsFilePathText();
+    ::MessageBoxW(g_nppData._nppHandle, summary.c_str(), L"About VSCode Keymap NPP", MB_OK | MB_ICONINFORMATION);
 }
 
 void RegisterPluginCommands() {
     std::wmemset(g_funcItems[0]._itemName, 0, menuItemSize);
     std::wmemset(g_funcItems[1]._itemName, 0, menuItemSize);
-
-    ::wcsncpy_s(g_funcItems[0]._itemName, menuItemSize, L"Toggle VSCode Strict Keymap", _TRUNCATE);
-    g_funcItems[0]._pFunc = ToggleKeymap;
-
-    ::wcsncpy_s(g_funcItems[1]._itemName, menuItemSize, L"Show VSCode Coverage Summary", _TRUNCATE);
-    g_funcItems[1]._pFunc = ShowBindingsSummary;
+    ::wcsncpy_s(g_funcItems[0]._itemName, menuItemSize, L"Config/Reference", _TRUNCATE);
+    g_funcItems[0]._pFunc = ShowConfigReferenceDialog;
+    ::wcsncpy_s(g_funcItems[1]._itemName, menuItemSize, L"About", _TRUNCATE);
+    g_funcItems[1]._pFunc = ShowAboutDialog;
 }
 
 }  // namespace
 
 extern "C" __declspec(dllexport) void setInfo(NppData notepadPlusData) {
     g_nppData = notepadPlusData;
+    LoadSettings();
     RegisterPluginCommands();
     HookWindows();
     ConfigureEditors();

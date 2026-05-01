@@ -4,9 +4,9 @@ Generated from https://code.visualstudio.com/docs/reference/default-keybindings.
 
 | Metric | Count |
 | --- | ---: |
-| Total Windows-default bindings | 161 |
-| Mapped | 82 |
-| Reserved no-op | 39 |
+| Total Windows-default bindings | 163 |
+| Mapped | 86 |
+| Reserved no-op | 37 |
 | Documented unported | 40 |
 
 ## Basic Editing
@@ -32,8 +32,8 @@ Generated from https://code.visualstudio.com/docs/reference/default-keybindings.
 | `Ctrl+Shift+L` | Select all occurrences of current selection | `editor.action.selectHighlights` | mapped | nppCommand | Select all current selection matches. |
 | `Ctrl+F2` | Select all occurrences of current word | `editor.action.changeAll` | mapped | nppCommand | Approximate current-word multi-select. |
 | `Ctrl+L` | Select current line | `expandLineSelection` | mapped | custom | Select current line without trailing newline. |
-| `Ctrl+Alt+Down` | Insert Cursor Below | `editor.action.insertCursorBelow` | reserved-noop | reservedNoOp | Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut. |
-| `Ctrl+Alt+Up` | Insert Cursor Above | `editor.action.insertCursorAbove` | reserved-noop | reservedNoOp | Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut. |
+| `Ctrl+Alt+Down` | Insert Cursor Below | `editor.action.insertCursorBelow` | mapped | custom | Move with the shared vertical-cursor rules; add/select one caret below. Virtual-space alignment is configurable. |
+| `Ctrl+Alt+Up` | Insert Cursor Above | `editor.action.insertCursorAbove` | mapped | custom | Move with the shared vertical-cursor rules; add/select one caret above. |
 | `Ctrl+Shift+\` | Jump to matching bracket | `editor.action.jumpToBracket` | mapped | nppCommand | Jump to matching brace. |
 | `Ctrl+]` | Indent Line | `editor.action.indentLines` | mapped | nppCommand | Approximate VS Code indent with Notepad++ indent command. |
 | `Ctrl+[` | Outdent Line | `editor.action.outdentLines` | mapped | nppCommand | Approximate VS Code outdent with Notepad++ unindent command. |
@@ -66,6 +66,8 @@ Generated from https://code.visualstudio.com/docs/reference/default-keybindings.
 | `Alt+W` | Toggle Find Whole Word | `toggleFindWholeWord` | documented-unported | documentedUnported |  |
 | `Ctrl+M` | Toggle Use of Tab Key for Setting Focus | `editor.action.toggleTabFocusMode` | documented-unported | documentedUnported |  |
 | `Alt+Z` | Toggle Word Wrap | `editor.action.toggleWordWrap` | mapped | nppCommand | Toggle word wrap. |
+| `Ctrl+Alt+Shift+Down` | Column Select Down | `editor.action.cursorColumnSelectDown` | mapped | custom | Move with the shared vertical-cursor rules; rebuild the anchored column-selection range downward. Undocumented on the VS Code default keybindings page, but available in the VS Code Keyboard Shortcuts editor. |
+| `Ctrl+Alt+Shift+Up` | Column Select Up | `editor.action.cursorColumnSelectUp` | mapped | custom | Move with the shared vertical-cursor rules; rebuild the anchored column-selection range upward. Undocumented on the VS Code default keybindings page, but available in the VS Code Keyboard Shortcuts editor. |
 ## Rich Languages Editing
 
 | Key | Command | VS Code command id | Status | Handling | Notes |

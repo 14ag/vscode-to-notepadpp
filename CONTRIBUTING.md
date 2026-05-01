@@ -86,9 +86,8 @@ notepad++.exe -noPlugin -multiInst -nosession -settingsDir=<temp-dir>
 
 These files are generated and should stay in sync:
 
-1. `data/vscode-default-keybindings.windows.json`
-2. `docs/VSCodeKeybindingCoverage.MD`
-3. `src/GeneratedBindings.inc`
+1. `docs/VSCodeKeybindingCoverage.MD`
+2. `src/GeneratedBindings.inc`
 
 If you change `data/keybinding-mappings.json` or the generator script, regenerate
 those files in the same change.

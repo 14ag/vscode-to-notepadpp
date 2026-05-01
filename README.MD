@@ -14,10 +14,10 @@ documented as intentionally unported.
 - Runtime bindings come from generated tables in `src/GeneratedBindings.inc`
 - Release flow now supports `x86`, `x64`, and `arm64`
 
-The plugin still registers two menu commands:
+The plugin currently registers two menu commands:
 
-- `Plugins > VSCode Keymap NPP > Toggle VSCode Strict Keymap`
-- `Plugins > VSCode Keymap NPP > Show VSCode Coverage Summary`
+- `Plugins > VSCode Keymap NPP > Config/Reference`
+- `Plugins > VSCode Keymap NPP > About`
 
 ## Coverage model
 
@@ -31,16 +31,15 @@ Bindings land in one of three states:
 - `documented-unported`: listed, but intentionally not emulated
 
 Current generated totals live in the coverage report and are also shown in the
-plugin summary dialog.
+plugin About dialog.
 
 ## Repository layout
 
 - `src/VSCodeKeymapPlugin.cpp`: plugin runtime and custom editor actions
 - `src/GeneratedBindings.inc`: generated runtime binding tables
 - `data/keybinding-mappings.json`: mapping manifest for portable shortcuts
-- `data/vscode-default-keybindings.windows.json`: generated normalized source snapshot
 - `docs/VSCodeKeybindingCoverage.MD`: generated coverage report
-- `scripts/sync-vscode-keybindings.ps1`: refresh source snapshot, report, and runtime tables
+- `scripts/sync-vscode-keybindings.ps1`: refresh the source scrape, report, and embedded runtime/reference tables
 - `scripts/package-release.ps1`: build and package release zips
 
 ## Refresh generated shortcut data
@@ -55,9 +54,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\sync-vscode-keybindings.ps1
 That script will:
 
 - fetch the current VS Code default keybindings page
-- regenerate the normalized Windows shortcut snapshot
 - validate manifest coverage and runtime collisions
-- regenerate the runtime include file
+- regenerate the embedded runtime/reference include file
 - regenerate the Markdown coverage report
 
 ## Build
@@ -117,8 +115,9 @@ Artifacts:
 Each zip is Plugin Admin-friendly:
 
 - `VSCodeKeymapNpp.dll` at archive root
-- `doc/README.MD`
-- `doc/VSCodeKeybindingCoverage.MD`
+
+The DLL carries the reference data used by the config dialog, so deployment no
+longer requires shipping the generated docs beside it.
 
 ## Install
 
@@ -137,6 +136,10 @@ Or under a machine-wide Notepad++ install:
 
 Use the DLL whose architecture matches the installed Notepad++ build exactly.
 Restart Notepad++ after copying the plugin.
+
+Inside `Plugins > VSCode Keymap NPP > Config/Reference`, checked rows are the
+shortcuts currently handled by the plugin. Clearing a row passes that shortcut
+back through to Notepad++.
 
 ## Feedback and contributions
 

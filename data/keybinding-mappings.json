@@ -132,14 +132,34 @@
     {
       "command": "editor.action.insertCursorBelow",
       "winKey": "Ctrl+Alt+Down",
-      "handler": "reservedNoOp",
-      "notes": "Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut."
+      "handler": "custom",
+      "target": "InsertCursorBelow",
+      "notes": "Move with the shared vertical-cursor rules; add/select one caret below. Virtual-space alignment is configurable."
     },
     {
       "command": "editor.action.insertCursorAbove",
       "winKey": "Ctrl+Alt+Up",
-      "handler": "reservedNoOp",
-      "notes": "Reserved so Notepad++ defaults do not hijack VS Code multi-cursor shortcut."
+      "handler": "custom",
+      "target": "InsertCursorAbove",
+      "notes": "Move with the shared vertical-cursor rules; add/select one caret above."
+    },
+    {
+      "command": "editor.action.cursorColumnSelectDown",
+      "winKey": "Ctrl+Alt+Shift+Down",
+      "section": "Basic Editing",
+      "label": "Column Select Down",
+      "handler": "custom",
+      "target": "CursorColumnSelectDown",
+      "notes": "Move with the shared vertical-cursor rules; rebuild the anchored column-selection range downward. Undocumented on the VS Code default keybindings page, but available in the VS Code Keyboard Shortcuts editor."
+    },
+    {
+      "command": "editor.action.cursorColumnSelectUp",
+      "winKey": "Ctrl+Alt+Shift+Up",
+      "section": "Basic Editing",
+      "label": "Column Select Up",
+      "handler": "custom",
+      "target": "CursorColumnSelectUp",
+      "notes": "Move with the shared vertical-cursor rules; rebuild the anchored column-selection range upward. Undocumented on the VS Code default keybindings page, but available in the VS Code Keyboard Shortcuts editor."
     },
     {
       "command": "cursorTop",

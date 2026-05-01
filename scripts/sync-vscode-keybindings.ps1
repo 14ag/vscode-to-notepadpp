@@ -3,7 +3,6 @@ param(
     [string]$SourceUrl = "https://code.visualstudio.com/docs/reference/default-keybindings",
     [string]$SourceHtmlPath,
     [string]$MappingsPath,
-    [string]$OutputJsonPath,
     [string]$OutputCoveragePath,
     [string]$OutputBindingsPath
 )
@@ -18,9 +17,6 @@ if (-not $SourceHtmlPath) {
 }
 if (-not $MappingsPath) {
     $MappingsPath = Join-Path $repoRoot "data\keybinding-mappings.json"
-}
-if (-not $OutputJsonPath) {
-    $OutputJsonPath = Join-Path $repoRoot "data\vscode-default-keybindings.windows.json"
 }
 if (-not $OutputCoveragePath) {
     $OutputCoveragePath = Join-Path $repoRoot "docs\VSCodeKeybindingCoverage.MD"
@@ -184,10 +180,43 @@ function Write-GeneratedBindings {
             $Stroke.Vk
     }
 
+    function Format-WideString {
+        param([AllowNull()][string]$Value)
+
+        if ([string]::IsNullOrEmpty($Value)) {
+            return 'L""'
+        }
+
+        $escaped = $Value.Replace('\', '\\').Replace('"', '\"').Replace("`r", '\r').Replace("`n", '\n').Replace("`t", '\t')
+        return 'L"{0}"' -f $escaped
+    }
+
+    function Format-Bool {
+        param([bool]$Value)
+
+        return $Value.ToString().ToLowerInvariant()
+    }
+
+    $referenceRows = New-Object System.Collections.Generic.List[string]
     $shortcutRows = New-Object System.Collections.Generic.List[string]
     $chordRows = New-Object System.Collections.Generic.List[string]
 
-    foreach ($binding in $Bindings) {
+    for ($referenceIndex = 0; $referenceIndex -lt $Bindings.Count; $referenceIndex++) {
+        $binding = $Bindings[$referenceIndex]
+        $referenceRows.Add(
+            ('    {{{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}}},' -f `
+                (Format-Bool -Value $binding.runtime), `
+                (Format-WideString -Value $binding.section), `
+                (Format-WideString -Value $binding.subsection), `
+                (Format-WideString -Value $binding.label), `
+                (Format-WideString -Value $binding.command), `
+                (Format-WideString -Value $binding.winKey), `
+                (Format-WideString -Value $binding.status), `
+                (Format-WideString -Value $binding.handler), `
+                (Format-WideString -Value $binding.target), `
+                (Format-WideString -Value $binding.notes))
+        ) | Out-Null
+
         if (-not $binding.Runtime) {
             continue
         }
@@ -198,10 +227,11 @@ function Write-GeneratedBindings {
         if ($strokes.Count -eq 1) {
             $stroke = $strokes[0]
             $shortcutRows.Add(
-                ('    {{{0}, {1}, {2}}}, // {3} -> {4}' -f `
+                ('    {{{0}, {1}, {2}, {3}}}, // {4} -> {5}' -f `
                     (Format-Stroke -Stroke $stroke), `
                     $action.Kind, `
                     $action.Id, `
+                    $referenceIndex, `
                     $binding.winKey, `
                     $binding.command)
             ) | Out-Null
@@ -211,11 +241,12 @@ function Write-GeneratedBindings {
         $first = $strokes[0]
         $second = $strokes[1]
         $chordRows.Add(
-            ('    {{{0}, {1}, {2}, {3}}}, // {4} -> {5}' -f `
+            ('    {{{0}, {1}, {2}, {3}, {4}}}, // {5} -> {6}' -f `
                 (Format-Stroke -Stroke $first), `
                 (Format-Stroke -Stroke $second), `
                 $action.Kind, `
                 $action.Id, `
+                $referenceIndex, `
                 $binding.winKey, `
                 $binding.command)
         ) | Out-Null
@@ -228,6 +259,15 @@ function Write-GeneratedBindings {
         "constexpr size_t kMappedBindingCount = $($Counts.mapped);"
         "constexpr size_t kReservedNoOpBindingCount = $($Counts.reserved);"
         "constexpr size_t kDocumentedUnportedBindingCount = $($Counts.unported);"
+        ""
+        "const std::vector<BindingReferenceEntry> kBindingReferences = {"
+    )
+
+    if ($referenceRows.Count -gt 0) {
+        $content += $referenceRows
+    }
+    $content += @(
+        "};"
         ""
         "const std::vector<ShortcutBinding> kShortcutBindings = {"
     )
@@ -340,6 +380,43 @@ function Get-DefaultBindingRecord {
     }
 }
 
+function Get-ManifestOnlyBindingRecord {
+    param([object]$Mapping)
+
+    $requiredFields = @("section", "label")
+    foreach ($field in $requiredFields) {
+        if (-not ($Mapping.PSObject.Properties.Name -contains $field) -or [string]::IsNullOrWhiteSpace($Mapping.$field)) {
+            throw "Manifest-only binding requires '$field': $($Mapping.command) / $($Mapping.winKey)"
+        }
+    }
+
+    $target = $null
+    $notes = ""
+    $subsection = ""
+    if ($Mapping.PSObject.Properties.Name -contains "target") {
+        $target = $Mapping.target
+    }
+    if ($Mapping.PSObject.Properties.Name -contains "notes") {
+        $notes = $Mapping.notes
+    }
+    if ($Mapping.PSObject.Properties.Name -contains "subsection") {
+        $subsection = $Mapping.subsection
+    }
+
+    return [ordered]@{
+        section = $Mapping.section
+        subsection = $subsection
+        label = $Mapping.label
+        command = $Mapping.command
+        winKey = $Mapping.winKey
+        status = Get-StatusFromHandler -Handler $Mapping.handler
+        handler = $Mapping.handler
+        target = $target
+        notes = $notes
+        runtime = Get-RuntimeFlag -Handler $Mapping.handler
+    }
+}
+
 if ($RefreshSource -or (-not (Test-Path -LiteralPath $SourceHtmlPath))) {
     New-Item -ItemType Directory -Path (Split-Path -Parent $SourceHtmlPath) -Force | Out-Null
     curl.exe --silent --show-error -L $SourceUrl -o $SourceHtmlPath | Out-Null
@@ -411,12 +488,14 @@ foreach ($row in $parsedRows) {
 
 $mappingDoc = Get-Content -Raw $MappingsPath | ConvertFrom-Json
 $mappingLookup = @{}
+$mappingOrder = New-Object System.Collections.Generic.List[string]
 foreach ($item in $mappingDoc.bindings) {
     $key = "$($item.command)`n$($item.winKey)"
     if ($mappingLookup.ContainsKey($key)) {
         throw "Duplicate mapping manifest entry for $($item.command) / $($item.winKey)."
     }
     $mappingLookup[$key] = $item
+    $mappingOrder.Add($key) | Out-Null
 }
 
 $resolvedBindings = New-Object System.Collections.Generic.List[object]
@@ -442,10 +521,25 @@ foreach ($binding in $dedupedRows) {
     $resolvedBindings.Add([pscustomobject]$record) | Out-Null
 }
 
-foreach ($lookupKey in $mappingLookup.Keys) {
+foreach ($lookupKey in $mappingOrder) {
     $match = $resolvedBindings | Where-Object { "$($_.command)`n$($_.winKey)" -eq $lookupKey }
     if (-not $match) {
-        throw "Manifest entry does not match current source binding: $lookupKey"
+        $record = [pscustomobject](Get-ManifestOnlyBindingRecord -Mapping $mappingLookup[$lookupKey])
+        $insertIndex = -1
+        for ($index = $resolvedBindings.Count - 1; $index -ge 0; $index--) {
+            if (($resolvedBindings[$index].section -eq $record.section) -and
+                ($resolvedBindings[$index].subsection -eq $record.subsection)) {
+                $insertIndex = $index + 1
+                break
+            }
+        }
+
+        if ($insertIndex -ge 0) {
+            $resolvedBindings.Insert($insertIndex, $record)
+        }
+        else {
+            $resolvedBindings.Add($record) | Out-Null
+        }
     }
 }
 
@@ -481,25 +575,13 @@ $counts = @{
     unported = @($resolvedBindings | Where-Object { $_.status -eq "documented-unported" }).Count
 }
 
-$jsonDoc = [ordered]@{
-    source = [ordered]@{
-        url = $SourceUrl
-        msDate = $sourceDate
-    }
-    counts = $counts
-    bindings = $resolvedBindings
-}
-
-New-Item -ItemType Directory -Path (Split-Path -Parent $OutputJsonPath) -Force | Out-Null
 New-Item -ItemType Directory -Path (Split-Path -Parent $OutputCoveragePath) -Force | Out-Null
 New-Item -ItemType Directory -Path (Split-Path -Parent $OutputBindingsPath) -Force | Out-Null
 
-$jsonDoc | ConvertTo-Json -Depth 10 | Set-Content -Path $OutputJsonPath -Encoding UTF8
 Write-CoverageReport -Path $OutputCoveragePath -Bindings $resolvedBindings -Counts $counts
 Write-GeneratedBindings -Path $OutputBindingsPath -Bindings $resolvedBindings -Counts $counts
 
 Write-Output "[OK] Parsed $($counts.total) Windows-default VS Code bindings."
 Write-Output "[OK] Mapped: $($counts.mapped); reserved: $($counts.reserved); documented-unported: $($counts.unported)."
-Write-Output "[OK] Wrote $OutputJsonPath"
 Write-Output "[OK] Wrote $OutputCoveragePath"
 Write-Output "[OK] Wrote $OutputBindingsPath"
