@@ -22,6 +22,9 @@ bool ExecuteAction(ActionKind kind, int id, const ActionContext& context) {
             RunSci(context.editor, static_cast<UINT>(id));
             return true;
 
+        case ActionKind::DuplicateLineDown:
+            return ExecuteDuplicateLineDown(context);
+
         case ActionKind::DuplicateLineUp:
             return ExecuteDuplicateLineUp(context);
 

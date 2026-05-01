@@ -9,6 +9,7 @@ struct CursorVirtualSpaceOptions {
 CursorVirtualSpaceOptions GetCursorVirtualSpaceOptions();
 void SetCursorVirtualSpaceOptions(const CursorVirtualSpaceOptions& options);
 
+bool ExecuteDuplicateLineDown(const ActionContext& context);
 bool ExecuteDuplicateLineUp(const ActionContext& context);
 bool ExecuteCutAllowLine(const ActionContext& context);
 bool ExecuteCopyAllowLine(const ActionContext& context);

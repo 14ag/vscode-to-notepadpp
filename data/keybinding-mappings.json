@@ -58,16 +58,16 @@
     {
       "command": "editor.action.copyLinesDownAction",
       "winKey": "Shift+Alt+Down",
-      "handler": "nppCommand",
-      "target": "IDM_EDIT_DUP_LINE",
-      "notes": "Duplicate line downward."
+      "handler": "custom",
+      "target": "DuplicateLineDown",
+      "notes": "Duplicate line downward and place the caret in the duplicate."
     },
     {
       "command": "editor.action.copyLinesUpAction",
       "winKey": "Shift+Alt+Up",
       "handler": "custom",
       "target": "DuplicateLineUp",
-      "notes": "Duplicate line, then move duplicate upward."
+      "notes": "Duplicate line upward and place the caret in the duplicate."
     },
     {
       "command": "undo",

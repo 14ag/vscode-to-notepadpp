@@ -21,8 +21,8 @@ Generated from https://code.visualstudio.com/docs/reference/default-keybindings.
 | `Ctrl+Shift+Enter` | Insert Line Above | `editor.action.insertLineBefore` | mapped | custom | Insert blank line above caret. |
 | `Alt+Down` | Move Line Down | `editor.action.moveLinesDownAction` | mapped | nppCommand | Move current line or selection down. |
 | `Alt+Up` | Move Line Up | `editor.action.moveLinesUpAction` | mapped | nppCommand | Move current line or selection up. |
-| `Shift+Alt+Down` | Copy Line Down | `editor.action.copyLinesDownAction` | mapped | nppCommand | Duplicate line downward. |
-| `Shift+Alt+Up` | Copy Line Up | `editor.action.copyLinesUpAction` | mapped | custom | Duplicate line, then move duplicate upward. |
+| `Shift+Alt+Down` | Copy Line Down | `editor.action.copyLinesDownAction` | mapped | custom | Duplicate line downward and place the caret in the duplicate. |
+| `Shift+Alt+Up` | Copy Line Up | `editor.action.copyLinesUpAction` | mapped | custom | Duplicate line upward and place the caret in the duplicate. |
 | `Ctrl+Z` | Undo | `undo` | mapped | nativePassThrough | Notepad++ already matches VS Code for undo. |
 | `Ctrl+Y` | Redo | `redo` | mapped | nativePassThrough | Notepad++ already matches VS Code for redo. |
 | `Ctrl+D` | Add Selection To Next Find Match | `editor.action.addSelectionToNextFindMatch` | mapped | nppCommand | Add next match to multiselection. |

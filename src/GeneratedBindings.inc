@@ -14,8 +14,8 @@ const std::vector<BindingReferenceEntry> kBindingReferences = {
     {true, L"Basic Editing", L"", L"Insert Line Above", L"editor.action.insertLineBefore", L"Ctrl+Shift+Enter", L"mapped", L"custom", L"InsertLineAbove", L"Insert blank line above caret."},
     {true, L"Basic Editing", L"", L"Move Line Down", L"editor.action.moveLinesDownAction", L"Alt+Down", L"mapped", L"nppCommand", L"IDM_EDIT_LINE_DOWN", L"Move current line or selection down."},
     {true, L"Basic Editing", L"", L"Move Line Up", L"editor.action.moveLinesUpAction", L"Alt+Up", L"mapped", L"nppCommand", L"IDM_EDIT_LINE_UP", L"Move current line or selection up."},
-    {true, L"Basic Editing", L"", L"Copy Line Down", L"editor.action.copyLinesDownAction", L"Shift+Alt+Down", L"mapped", L"nppCommand", L"IDM_EDIT_DUP_LINE", L"Duplicate line downward."},
-    {true, L"Basic Editing", L"", L"Copy Line Up", L"editor.action.copyLinesUpAction", L"Shift+Alt+Up", L"mapped", L"custom", L"DuplicateLineUp", L"Duplicate line, then move duplicate upward."},
+    {true, L"Basic Editing", L"", L"Copy Line Down", L"editor.action.copyLinesDownAction", L"Shift+Alt+Down", L"mapped", L"custom", L"DuplicateLineDown", L"Duplicate line downward and place the caret in the duplicate."},
+    {true, L"Basic Editing", L"", L"Copy Line Up", L"editor.action.copyLinesUpAction", L"Shift+Alt+Up", L"mapped", L"custom", L"DuplicateLineUp", L"Duplicate line upward and place the caret in the duplicate."},
     {false, L"Basic Editing", L"", L"Undo", L"undo", L"Ctrl+Z", L"mapped", L"nativePassThrough", L"", L"Notepad++ already matches VS Code for undo."},
     {false, L"Basic Editing", L"", L"Redo", L"redo", L"Ctrl+Y", L"mapped", L"nativePassThrough", L"", L"Notepad++ already matches VS Code for redo."},
     {true, L"Basic Editing", L"", L"Add Selection To Next Find Match", L"editor.action.addSelectionToNextFindMatch", L"Ctrl+D", L"mapped", L"nppCommand", L"IDM_EDIT_MULTISELECTNEXT", L"Add next match to multiselection."},
@@ -179,7 +179,7 @@ const std::vector<ShortcutBinding> kShortcutBindings = {
     {{true, false, true, VK_RETURN}, ActionKind::InsertLineAbove, 0, 5}, // Ctrl+Shift+Enter -> editor.action.insertLineBefore
     {{false, true, false, VK_DOWN}, ActionKind::NppCommand, IDM_EDIT_LINE_DOWN, 6}, // Alt+Down -> editor.action.moveLinesDownAction
     {{false, true, false, VK_UP}, ActionKind::NppCommand, IDM_EDIT_LINE_UP, 7}, // Alt+Up -> editor.action.moveLinesUpAction
-    {{false, true, true, VK_DOWN}, ActionKind::NppCommand, IDM_EDIT_DUP_LINE, 8}, // Shift+Alt+Down -> editor.action.copyLinesDownAction
+    {{false, true, true, VK_DOWN}, ActionKind::DuplicateLineDown, 0, 8}, // Shift+Alt+Down -> editor.action.copyLinesDownAction
     {{false, true, true, VK_UP}, ActionKind::DuplicateLineUp, 0, 9}, // Shift+Alt+Up -> editor.action.copyLinesUpAction
     {{true, false, false, 'D'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTNEXT, 12}, // Ctrl+D -> editor.action.addSelectionToNextFindMatch
     {{true, false, false, 'U'}, ActionKind::NppCommand, IDM_EDIT_MULTISELECTUNDO, 14}, // Ctrl+U -> cursorUndo

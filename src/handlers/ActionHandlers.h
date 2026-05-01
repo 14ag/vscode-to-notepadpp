@@ -21,6 +21,7 @@ inline bool operator==(const KeyStroke& lhs, const KeyStroke& rhs) {
 enum class ActionKind {
     NppCommand,
     SciCommand,
+    DuplicateLineDown,
     DuplicateLineUp,
     CutAllowLine,
     CopyAllowLine,
